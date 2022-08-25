@@ -17,3 +17,4 @@ All database schema will be recorded in DBML, which can be easily edited and vie
 Development
 ===========
 Development and testing are being done using a local Airflow environment created using the Astro CLI. For information on setting up your own local environment for development, please consult https://docs.astronomer.io
+For more information on data sources, the CDW data schema, or other any other aspects of this project, please consult /documentation.
