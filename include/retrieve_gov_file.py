@@ -4,7 +4,6 @@ import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
 
-
 def unpack_zip(path_to_zip, extract_path):
     """
     Recursively unzips a file and outputs its content to a directory.
@@ -43,6 +42,7 @@ def retrieve_gov_file(file_name, file_url, bucket, s3_conn_id):
     """
     download_dest = "/tmp/" + file_name
     wget.download(file_url, download_dest)
+    print(download_dest + " downloaded")
     if file_name.endswith(".zip"):
         unpack_zip(download_dest, "/tmp/prepped/")
         os.remove(download_dest)
