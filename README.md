@@ -6,7 +6,7 @@ Objectives
 ==========
 1. Create an easy to use repository of government data to enable development of future research and development projects.
 2. Provide a template for similar efforts in other cities with similar needs.
-3. Create an open standard for the data schema of a civic data warehouse, so that other cities that follow this example will be able to collaborate on development of and share future data tools.
+3. Create an open standard for the data schema of a civic data warehouse, so that other cities that follow this example will be able to collaborate on development of and share future data tools. This standard should account for individual and distinct warehouses to be developed independently, while remaining interoperable. To that end, I will be creating a unique key (cdw_id) and 
 
 Architecture
 ============

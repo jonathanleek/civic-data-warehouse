@@ -1,0 +1,155 @@
+// Entities
+Table parcel {
+  parcel_id int [pk, note: 'REDB identifier, not municapal identifier (handle)']
+  county varchar
+  owner_id int [ref: - legal_entity.legal_entity_id]
+  ward int
+  neighborhood varchar
+  zip_code int
+  census_block int
+  frontage int
+  zoning_class_id int [ref: - zoning_class.zoning_class_id]
+}
+
+Table building {
+  building_id int [pk]
+  parcel_id int [ref: > parcel.parcel_id]
+  owner_id int [ref: - legal_entity.legal_entity_id]
+  use_type_id int [ref: - use_type.use_type_id]
+  sq_footage int
+  year_built int
+}
+
+Table unit {
+  unit_id int  [pk]
+  building_id int [ref: > building.building_id]
+  owner_id int [ref: - legal_entity.legal_entity_id]
+  use_type_id int [ref: - use_type.use_type_id]
+  address_id int [ref: - address.address_id]
+  ground_floor bool
+  stories float
+  windows_ac int
+  central_ac int
+  full_bath int
+  half_bath int
+  garage int
+}
+
+Table legal_entity {
+  legal_entity_id int [pk]
+  name varchar
+  address_id int [ref: - address.address_id]
+}
+
+Table address {
+  address_id int [pk]
+  street_number int
+  street_name_prefix varchar
+  street_name varchar
+  street_name_suffix varchar
+  secondary_designator varchar
+  city varchar
+  state varchar
+  zip int
+}
+
+// Operations
+Table permit {
+  permit_id int  [pk]
+  permit_type_id int [ref: > permit_type.permit_type_id]
+  application_date date
+  issue_date date
+  completion_date date
+  cancel_date date
+  description varchar
+  cost float
+  applicant_id int [ref: - legal_entity.legal_entity_id]
+  contractor_id int [ref: - legal_entity.legal_entity_id]
+}
+
+Table service {
+  service_id int [pk]
+  parcel_id int [ref: - parcel.parcel_id]
+  building_id int [ref: - building.building_id]
+  unit_id int [ref: - unit.unit_id]
+  owner_id int [ref: - legal_entity.legal_entity_id]
+  division_id int [ref: - division.division_id]
+  service_date date
+  service_type_id int [ref: - service_type.service_type_id]
+  fee float8
+}
+
+Table condemnation {
+  condemnation_id int [pk]
+  inspection_id int [ref: - inspection.inspection_id]
+  letter_date date
+  condemnation_type varchar
+  status varchar
+}
+
+Table inspection {
+  inspection_id int [pk]
+  building_id int [ref: - building.building_id]
+  inspection_date date
+  completion_date date
+  inspection_type_id int [ref: - inspection_type.inspection_type_id]
+  number_of_violations int
+}
+
+Table assessment {
+  assessment_id int [pk]
+  parcel_id int [ref: - parcel.parcel_id]
+  assessment_date date
+  assessment_amount float
+  land_value float
+  improvement_value float
+}
+
+Table tax_delinquency {
+  tax_delinquency_id int [pk]
+  legal_entity_id int [ref: - legal_entity.legal_entity_id]
+  last_paid_year int
+  amount_delinquent float
+}
+
+// Lookups
+Table municipality {
+  municipality_id int [pk]
+  municipality varchar
+}
+
+Table division {
+  division_id int [pk]
+  division varchar
+}
+
+Table service_type {
+  service_type_id int [pk]
+  service_type varchar
+}
+
+Table zoning_class {
+  zoning_class_id int [pk]
+  zoning_class varchar
+}
+
+Table municipal_parcel_id_mapping {
+  parcel_id int [pk]
+  municpal_parcel_id varchar
+  municipality_id int
+}
+
+Table use_type {
+  use_type_id int [pk]
+  use_type int
+}
+
+Table permit_type {
+  permit_type_id int [pk]
+  permit_type varchar
+}
+
+Table inspection_type {
+  inspection_type_id int [pk]
+  inspection_type varchar
+}
