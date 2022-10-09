@@ -4,6 +4,7 @@ from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.operators.python_operator import PythonOperator
 
+
 from include.retrieve_gov_file import retrieve_gov_file
 
 # TODO change s3 connection to use AWS Secret Manager
@@ -25,7 +26,7 @@ with DAG(
                     task_id="files_to_s3_" + file['file_name'],
                     python_callable=retrieve_gov_file,
                     op_kwargs={
-                        "file_name": file['file_name'],
+                        "filename": file['file_name'],
                         "file_url": file['file_location'],
                         "bucket": BUCKET,
                         "s3_conn_id": "AWS_S3_CONN_ID",

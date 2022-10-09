@@ -3,6 +3,8 @@ import wget
 import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
+import sys, subprocess, os
+
 
 def unpack_zip(path_to_zip, extract_path):
     """
@@ -34,16 +36,16 @@ def upload_to_s3(s3_conn_id, filename, key, bucket):
     s3_hook.load_file(filename=filename, key=key, bucket_name=bucket, replace=True)
 
 
-def retrieve_gov_file(file_name, file_url, bucket, s3_conn_id):
+def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
     # TODO This function requires testing
     """
     Downloads a single file to a temporary directory, recursively unzips it, and uploads it to s3
     :return: none
     """
-    download_dest = "/tmp/" + file_name
+    download_dest = "/tmp/" + filename
     wget.download(file_url, download_dest)
     print(download_dest + " downloaded")
-    if file_name.endswith(".zip"):
+    if filename.endswith(".zip"):
         unpack_zip(download_dest, "/tmp/prepped/")
         os.remove(download_dest)
     else:
@@ -59,3 +61,8 @@ def retrieve_gov_file(file_name, file_url, bucket, s3_conn_id):
         upload_to_s3(
             s3_conn_id=s3_conn_id, filename=PATH_TO_FILE, bucket=BUCKET, key=OBJECT
         )
+#
+# def process_mdb(filename):
+#     subprocess.run(["/include/mdb_export_all.sh", filename])
+#
+# process_mdb("/Users/jonathanleek/Documents/Working/output/PrclCode.mdb")
