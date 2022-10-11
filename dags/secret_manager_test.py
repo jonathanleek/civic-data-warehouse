@@ -8,7 +8,7 @@ def print_var():
     my_var = Variable.get("my-test-variable")
     print(f'My variable is: {my_var}')
 
-    conn = BaseHook.get_connection(conn_id="my-test-connection")
+    conn = BaseHook.get_connection(conn_id="s3_datalake")
     print(conn.get_uri())
 
 with DAG('example_secrets_dag', start_date=datetime(2022, 1, 1), schedule_interval=None) as dag:
