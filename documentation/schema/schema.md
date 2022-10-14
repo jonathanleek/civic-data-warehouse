@@ -10,4 +10,4 @@ Data is tied to the lowest level of the spine that is applicable. For example, a
 
 Outlies and Special Cases
 -------------------------
-In some cities, there are non-real-estate taxable properties that are assessed and mixed in with more traditional parcels like lots and buildings. In order to accurately represent these
+In some cities, there are non-real-estate taxable properties that are assessed and mixed in with more traditional parcels like lots and buildings. In these cases, we will attempt to filter these records from the dataset.
