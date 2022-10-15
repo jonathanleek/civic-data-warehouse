@@ -3,17 +3,11 @@ import json
 from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.operators.python import PythonOperator
-
-
 from include.retrieve_gov_file import retrieve_gov_file
 
-# TODO change s3 connection to use AWS Secret Manager
-
-# s3_conn = BaseHook.get_connection(conn_id="s3_datalake")
-# AWS_S3_CONN_ID = Variable.get("CONN_S3_DATALAKE")
 gov_files = "include/gov_files.json"
 BUCKET = "civic-data-warehouse-lz"
-# TODO Break into dynamic dags
+
 with DAG(
     "govt_file_download",
     description="Downloads public civic data and saves to s3 for processing",

@@ -1,5 +1,3 @@
-
-
 #!/usr/bin/env bash
 # Usage: mdb-export-all.sh full-path-to-db
 
