@@ -64,7 +64,7 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
             for table in tables:
                 if table != '' and table !='\n':
                     #TODO add database name to file name
-                    export_file = "/tmp/prepped/" + table.replace(' ', '_') + '.csv'
+                    export_file = "/tmp/prepped/" +os.path.splitext(file)[0] + '_' + table.replace(' ', '_') + '.csv'
                     print('Exporting ' + table)
                     with open(export_file, 'wb') as f:
                         subprocess.check_call(['mdb-export', '/tmp/prepped/' + file, table], stdout=f)
