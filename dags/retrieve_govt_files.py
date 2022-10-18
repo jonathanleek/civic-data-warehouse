@@ -7,13 +7,18 @@ from include.retrieve_gov_file import retrieve_gov_file
 
 gov_files = "include/gov_files.json"
 BUCKET = "civic-data-warehouse-lz"
-
+#TODO convert to dynamic dags instead of tasks
+#Tasks currently fail if run on all gov_docs at once, but confirmed to work in smaller batches. Worker resource constraings?
 with DAG(
     "govt_file_download",
     description="Downloads public civic data and saves to s3 for processing",
     schedule_interval=timedelta(days=1),
     start_date=datetime(2022, 6, 24),
     catchup=False,
+    default_args={
+        'retries': 3,
+        'retry_delay': timedelta(minutes=1)
+    }
 ) as dag:
     with open(gov_files, "r") as read_file:
         gov_file_data = json.load(read_file)
