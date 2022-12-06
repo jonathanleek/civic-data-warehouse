@@ -1,7 +1,7 @@
 Overview
 ========
 
-Welcome to Civic Data Warehouse! This project was generated using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine.
+Welcome to Civic Data Warehouse! This project was generated using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine. Documentation specific to the civic data warehouse can be found in the documentation directory.
 
 Project Contents
 ================
@@ -11,6 +11,7 @@ This Astro project contains the following files and folders:
 File/Folder | Description 
 --- | ---
 dags | This folder contains the Python files for your Airflow DAGs. By default, this directory includes an example DAG that runs every 30 minutes and simply prints the current date. It also includes an empty 'my_custom_function' that you can fill out to execute Python code.
+documenation | contains documentation about the Civic Data Warehouse and the proposed Real Estate Data Specification.
 Dockerfile | This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
 include | This folder contains any additional files that you want to include as part of your project. It is empty by default.
 packages.txt | Install OS-level packages needed for your project by adding them to this file. It is empty by default.
