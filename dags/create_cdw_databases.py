@@ -15,7 +15,6 @@ with DAG(
         postgres_conn_id = "cdw-dev",
         sql = "include/sql/create_staging_1.sql"
     )
-
     # Create schema "staging_2" in cdw database
     create_staging_2 = PostgresOperator(
         task_id = 'create_staging_2',
@@ -23,4 +22,11 @@ with DAG(
         sql = "include/sql/create_staging_2.sql"
     )
 
-create_staging_1 >> create_staging_2
+    # Create schema "data_prep" in cdw database
+    create_data_prep = PostgresOperator(
+        task_id = 'create_data_prep',
+        postgres_conn_id = "cdw-dev",
+        sql = "include/sql/create_data_prep.sql"
+    )
+
+create_staging_1 >> create_staging_2 >>  create_data_prep

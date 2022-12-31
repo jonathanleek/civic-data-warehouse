@@ -1,21 +1,19 @@
-from airflow.models import Variable
-import json
 from airflow import DAG
 from datetime import datetime, timedelta
-from airflow.operators.python import PythonOperator
-from include.retrieve_gov_file import retrieve_gov_file
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 
 
+with DAG(
+    "s3_to_postgres_ingest",
+    start_date=datetime(2022, 12, 30),
+    max_active_runs=1,
+    schedule=None
+) as dag:
 
-# get most recent date from staging schema
-# get list of files updated/uploaded since that date from s3
-s3_file_list = S3ListOperator(
-    task_id='list_s3_objects',
-    aws_conn_id='s3_datalake',
-    bucket='civic-data-warehouse-lz',
-    prefix='unpacked/',
-    delimiter='/'
-)
 
-# for each file in list, create/recreate table in staging_1
+# truncate tables in staging_2
+# copy staging_1 tables to staging_2
+# truncate staging_1 tables
+# get list of files in s3
+# for each file in s3, create table if not exist and import csv
