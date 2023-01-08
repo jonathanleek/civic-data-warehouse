@@ -29,4 +29,4 @@ with DAG(
         sql = "include/sql/create_data_prep.sql"
     )
 
-create_staging_1 >> create_staging_2 >>  create_data_prep
+create_staging_1 >> create_staging_2 >> create_data_prep

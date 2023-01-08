@@ -11,9 +11,31 @@ with DAG(
     schedule=None
 ) as dag:
 
-
 # truncate tables in staging_2
+# https://stackoverflow.com/questions/2829158/truncating-all-tables-in-a-postgres-database
+# add function creation dag to create appropriate function
+    truncate_stating_2= PostgresOperator(
+        task_id = 'truncate_staging_2',
+        postgres_conn_id = "cdw-dev",
+        sql = "include/sql/truncate_staging_2.sql"
+    )
+
 # copy staging_1 tables to staging_2
-# truncate staging_1 tables
+# need to create or replace tables
+    copy_staging_1_to_staging_2 = PostgresOperator(
+        task_id= 'copy_staging_1_to_staging_2',
+        postgres_conn_id= "cdw_dev",
+        sql = "include/sql/staging_1_to_staging_2.sql"
+    )
+
 # get list of files in s3
+# https://registry.astronomer.io/providers/amazon/modules/s3listoperator
+
 # for each file in s3, create table if not exist and import csv
+# use dynamic task generation https://newt-tan.medium.com/airflow-dynamic-generation-for-tasks-6959735b01b
+# see retrieve_gov_files.py for example
+    create_staging_1_tables = PostgresOperator(
+        task_id= 'create_staging_1_tables',
+        postgres_conn_id= "cdw-dev",
+        sql= "include/sql/create_staging_1_tables.sql"
+    )
