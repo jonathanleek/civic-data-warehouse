@@ -6,7 +6,7 @@ with DAG(
     "cdw_creation",
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
-    schedule=None
+    schedule_interval=None
 ) as dag:
 
     # Create schema "staging_1" in cdw database
