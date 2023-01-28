@@ -23,10 +23,10 @@ with DAG(
     )
 
     # Create schema "data_prep" in cdw database
-    create_data_prep = PostgresOperator(
-        task_id = 'create_data_prep',
+    create_dead_records = PostgresOperator(
+        task_id = 'create_dead_records',
         postgres_conn_id = "cdw-dev",
-        sql = "include/sql/create_data_prep.sql"
+        sql = "include/sql/create_dead_records.sql"
     )
 
 create_staging_1 >> create_staging_2 >> create_data_prep

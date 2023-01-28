@@ -21,18 +21,18 @@ with DAG(
         postgres_conn_id="cdw-dev",
         sql="include/sql/truncate_updated_records.sql"
     )
-# populate dead_records table with records in staging_2 but not staging_1
+# populate dead_records schema with records in staging_2 but not staging_1
 # TODO Write SQL. staging_2 LEFT JOIN staging_1 on primary keys
     populate_dead_records = PostgresOperator(
         task_id='populate dead_records',
         postgres_conn_id="cdw-dev",
-        sql="include/sql/populate_dead_records"
+        sql="include/sql/populate_dead_records.sql"
     )
 
-# populate updated_records table with records in staging_1 but not staging 2 and records that exist in both staging schema, but with differences
+# populate updated_records schema with records in staging_1 but not staging 2 and records that exist in both staging schema, but with differences
 # TODO Write SQL. staging_1 LEFT JOIN staging_2 on primary keys UNION (staging_1 INNER JOIN staging_2 on primary keys WHERE  staging_1.non-keys != staging_2.non-keys
 populate_updated_records = PostgresOperator(
     task_id='populate updated_records',
     postgres_conn_id="cdw-dev",
-    sql="include/sql/populate_updated_records"
+    sql="include/sql/populate_updated_records.sql"
 )

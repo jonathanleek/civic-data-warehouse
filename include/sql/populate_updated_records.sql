@@ -1,0 +1,1 @@
+--TODO Write SQL. staging_1 LEFT JOIN staging_2 on primary keys UNION (staging_1 INNER JOIN staging_2 on primary keys WHERE  staging_1.non-keys != staging_2.non-keys
