@@ -1,0 +1,1 @@
+SELECT truncate_tables('{{schema}}');

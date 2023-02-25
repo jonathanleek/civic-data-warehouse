@@ -10,13 +10,13 @@ with DAG(
     schedule=None
 ) as dag:
 
-# TODO truncate tables in staging_2
+# TODO test
 # https://stackoverflow.com/questions/2829158/truncating-all-tables-in-a-postgres-database
-# add function creation dag to create appropriate function
-    truncate_stating_2= PostgresOperator(
-        task_id = 'truncate_staging_2',
-        postgres_conn_id = "cdw-dev",
-        sql = "include/sql/truncate_staging_2.sql"
+    truncate_staging_2 = PostgresOperator(
+        task_id= 'truncate_staging_2',
+        postgres_conn_id= 'cdw-dev',
+        sql= "include/sql/truncate_schema.sql",
+        params={'schema': 'staging_2'}
     )
 
 # TODO copy staging_1 tables to staging_2

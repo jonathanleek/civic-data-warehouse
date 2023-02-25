@@ -29,4 +29,10 @@ with DAG(
         sql = "include/sql/create_dead_records.sql"
     )
 
+    create_updated_records = PostgresOperator(
+        task_id = 'create_updated_records',
+        postgres_conn_id = "cdw-dev",
+        sql = "include/sql/create_updated_records.sql"
+    )
+
 create_staging_1 >> create_staging_2 >> create_data_prep
