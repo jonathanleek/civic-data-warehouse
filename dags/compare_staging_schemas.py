@@ -9,7 +9,7 @@ with DAG(
         schedule=None
 ) as dag:
 
-# truncate dead_records and updated_records tables
+# truncate dead_records and updated_records schemas
     truncate_dead_records= PostgresOperator(
         task_id = 'truncate dead_records',
         postgres_conn_id = "cdw-dev",
