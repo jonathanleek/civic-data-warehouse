@@ -1,1 +1,1 @@
-create schema if not exists dead_records;
+create schema if not exists data_prep;

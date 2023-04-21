@@ -23,6 +23,8 @@ with DAG(
     )
 # populate dead_records schema with records in staging_2 but not staging_1
 # TODO Write SQL. staging_2 LEFT JOIN staging_1 on primary keys
+# https://stackoverflow.com/questions/12379221/sql-query-to-find-primary-key-of-a-table
+# https://stackoverflow.com/questions/18516931/find-primary-key-of-table-in-postgresql-from-information-schema-with-only-select
     populate_dead_records = PostgresOperator(
         task_id='populate dead_records',
         postgres_conn_id="cdw-dev",

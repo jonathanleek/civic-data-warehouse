@@ -1,7 +1,7 @@
 from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
+from airflow.providers.amazon.aws.operators.s3 import S3ListOperator, S3ToSqlOperator
 
 with DAG(
     "s3_to_postgres_ingest",
@@ -12,29 +12,26 @@ with DAG(
 
 # TODO test
 # https://stackoverflow.com/questions/2829158/truncating-all-tables-in-a-postgres-database
-    truncate_staging_2 = PostgresOperator(
-        task_id= 'truncate_staging_2',
+    truncate_staging = PostgresOperator(
+        task_id= 'truncate_staging',
         postgres_conn_id= 'cdw-dev',
         sql= "include/sql/truncate_schema.sql",
-        params={'schema': 'staging_2'}
-    )
-
-# TODO copy staging_1 tables to staging_2
-# need to create or replace tables
-    copy_staging_1_to_staging_2 = PostgresOperator(
-        task_id= 'copy_staging_1_to_staging_2',
-        postgres_conn_id= "cdw_dev",
-        sql = "include/sql/staging_1_to_staging_2.sql"
+        params={'schema': 'staging'}
     )
 
 # TODO get list of files in s3
-# https://registry.astronomer.io/providers/amazon/modules/s3listoperator
-
-# TODO for each file in s3, create table if not exist and import csv
-# use dynamic task generation https://newt-tan.medium.com/airflow-dynamic-generation-for-tasks-6959735b01b
-# see retrieve_gov_files.py for example
-    create_staging_1_tables = PostgresOperator(
-        task_id= 'create_staging_1_tables',
-        postgres_conn_id= "cdw-dev",
-        sql= "include/sql/create_staging_1_tables.sql"
+    list_s3_objects = S3ListOperator(
+        bucket = s3_datalake
     )
+
+#  TODO requires testing, likely broken
+    with list_s3_objects as govt_files:
+        for file in gov_files:
+            file_to_postgres = S3ToSqlOperator(
+                task_id="files_to_PostGres_" + file,
+                s3_key = file,
+                s3_bucket = s3_datalake,
+                table = "staging.{{file}}",
+                parser = def parse_csv(filepath):import csv with open(filepath, newline=””) as file:yield from csv.reader(file),
+                sql_conn_id = "cdw-dev"
+            )
