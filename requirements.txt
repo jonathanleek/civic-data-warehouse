@@ -1,2 +1,2 @@
 wget
-apache-airflow-providers-amazon
+apache-airflow-providers-amazon==7.4.1

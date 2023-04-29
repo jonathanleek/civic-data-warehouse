@@ -4,6 +4,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
 import subprocess, os
 
+
 def unpack_zip(path_to_zip, extract_path):
     """
     Recursively unzips a file and outputs its content to a directory.
@@ -23,6 +24,7 @@ def unpack_zip(path_to_zip, extract_path):
             print(extract_path + name)
             pass
 
+
 def upload_to_s3(s3_conn_id, filename, key, bucket):
     """
     Uploads a target file to s3
@@ -30,6 +32,7 @@ def upload_to_s3(s3_conn_id, filename, key, bucket):
     """
     s3_hook = S3Hook(aws_conn_id=s3_conn_id)
     s3_hook.load_file(filename=filename, key=key, bucket_name=bucket, replace=True)
+
 
 def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
     """
@@ -55,22 +58,42 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
         if file.endswith(".mdb"):
             print(file + " identified as .mdb")
             try:
-                table_names = subprocess.Popen('mdb-tables /tmp/prepped/'+ file, stdout = subprocess.PIPE, shell=True)
-                output = table_names.communicate()[0].decode('ascii')
+                table_names = subprocess.Popen(
+                    "mdb-tables /tmp/prepped/" + file,
+                    stdout=subprocess.PIPE,
+                    shell=True,
+                )
+                output = table_names.communicate()[0].decode("ascii")
                 print(output)
-                tables = output.split(' ')
+                tables = output.split(" ")
                 print(tables)
             except subprocess.CalledProcessError as e:
-                raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+                raise RuntimeError(
+                    "command '{}' return with error (code {}): {}".format(
+                        e.cmd, e.returncode, e.output
+                    )
+                )
             for table in tables:
-                if table != '' and table !='\n':
-                    export_file = "/tmp/prepped/" +os.path.splitext(file)[0] + '_' + table.replace(' ', '_') + '.csv'
-                    print('Exporting ' + table)
-                    with open(export_file, 'wb') as f:
+                if table != "" and table != "\n":
+                    export_file = (
+                        "/tmp/prepped/"
+                        + os.path.splitext(file)[0]
+                        + "_"
+                        + table.replace(" ", "_")
+                        + ".csv"
+                    )
+                    print("Exporting " + table)
+                    with open(export_file, "wb") as f:
                         try:
-                            subprocess.check_call(['mdb-export', '/tmp/prepped/' + file, table], stdout=f)
+                            subprocess.check_call(
+                                ["mdb-export", "/tmp/prepped/" + file, table], stdout=f
+                            )
                         except subprocess.CalledProcessError as e:
-                            raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+                            raise RuntimeError(
+                                "command '{}' return with error (code {}): {}".format(
+                                    e.cmd, e.returncode, e.output
+                                )
+                            )
 
     for file in os.listdir("/tmp/prepped/"):
         print(file + " found in /tmp/prepped/ for sending to S3")
@@ -79,6 +102,9 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
             PATH_TO_FILE = "/tmp/prepped/" + file
             BUCKET = bucket
             upload_to_s3(
-                s3_conn_id=s3_conn_id, filename=PATH_TO_FILE, bucket=BUCKET, key="unpacked/" + OBJECT
+                s3_conn_id=s3_conn_id,
+                filename=PATH_TO_FILE,
+                bucket=BUCKET,
+                key="unpacked/" + OBJECT,
             )
             print(file + " successfully loaded to S3")
