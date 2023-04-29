@@ -4,7 +4,10 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.amazon.aws.transfers.s3_to_sql import S3ToSqlOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.operators.python import PythonOperator
+import os
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
+sql_dir = os.path.join(base_dir, 'sql')
 
 def parse_csv_to_list(filepath):
     import csv
@@ -28,7 +31,7 @@ with DAG(
     truncate_staging = PostgresOperator(
         task_id="truncate_staging",
         postgres_conn_id="cdw-dev",
-        sql="include/sql/truncate_schema.sql",
+        sql=f"truncate_schema.sql",
         params={"schema": "staging"},
     )
 
