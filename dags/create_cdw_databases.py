@@ -17,14 +17,14 @@ with DAG(
     create_staging = PostgresOperator(
         task_id="create_staging",
         postgres_conn_id="cdw-dev",
-        sql=f"create_staging.sql",
+        sql="create_staging.sql",
     )
 
-    # Create schema "data_prep" in cdw database
-    create_data_prep = PostgresOperator(
+    # Create schema "current" in cdw database
+    create_current = PostgresOperator(
         task_id="create_data_prep",
         postgres_conn_id="cdw-dev",
-        sql=f"create_data_prep.sql",
+        sql=f"create_current.sql",
     )
 
     # Create schema "history" in cdw database
@@ -34,4 +34,9 @@ with DAG(
         sql=f"create_history.sql",
     )
 
-create_staging >> create_data_prep >> create_history
+    create_truncate_tables_function = PostgresOperator(
+        task_id="create_truncate_tables_function",
+        postgres_conn_id="cdw-dev",
+        sql=f"create_truncate_tables_function.sql",
+    )
+create_staging >> create_current >> create_history >> create_truncate_tables_function

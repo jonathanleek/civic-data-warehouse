@@ -25,6 +25,7 @@ with DAG(
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule=None,
+    template_searchpath=[sql_dir, 'include/sql']
 ) as dag:
     # TODO test
     # https://stackoverflow.com/questions/2829158/truncating-all-tables-in-a-postgres-database
