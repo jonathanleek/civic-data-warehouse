@@ -55,6 +55,7 @@ with DAG(
                 s3_bucket='civic-data-warehouse-lz',
                 parser=parse_csv_to_list,
                 sql_conn_id='cdw-dev',
+                schema= 'staging',
             ).expand(s3_key=list_s3_objects.output, table = list_s3_objects.output)
 
 truncate_staging >> list_s3_objects >> transfer_s3_to_sql
