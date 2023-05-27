@@ -46,20 +46,15 @@ with DAG(
     )
 
 # TODO Iterate through files and ingest into Postgres
+# https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/dynamic-task-mapping.html
     with TaskGroup('file_ingest_task_group',
                    prefix_group_id=False,
                    ):
+            transfer_s3_to_sql = S3ToSqlOperator.partial(
+                task_id="transfer_s3_to_sql",
+                s3_bucket='civic-data-warehouse-lz',
+                parser=parse_csv_to_list,
+                sql_conn_id='cdw-dev',
+            ).expand(s3_key=list_s3_objects.output, table = list_s3_objects.output)
 
-            key_table_pairs = create_key_table_pairs(list_s3_objects.output)
-
-            for item in key_table_pairs.items():
-                transfer_s3_to_sql = S3ToSqlOperator(
-                    task_id="transfer_s3_to_sql_" + item[0],
-                    table = item[1],
-                    s3_key = item[0],
-                    s3_bucket='civic-data-warehouse-lz',
-                    parser=parse_csv_to_list,
-                    sql_conn_id='cdw-dev',
-                )
-
-    truncate_staging >> list_s3_objects >> transfer_s3_to_sql
+truncate_staging >> list_s3_objects >> transfer_s3_to_sql
