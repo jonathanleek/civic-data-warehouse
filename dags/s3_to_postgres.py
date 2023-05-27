@@ -53,6 +53,7 @@ with DAG(
             transfer_s3_to_sql = S3ToSqlOperator.partial(
                 task_id="transfer_s3_to_sql",
                 s3_bucket='civic-data-warehouse-lz',
+                aws_conn_id="s3_datalake",
                 parser=parse_csv_to_list,
                 sql_conn_id='cdw-dev',
                 schema= 'staging',
