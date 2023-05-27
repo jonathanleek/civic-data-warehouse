@@ -4,21 +4,24 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.amazon.aws.transfers.s3_to_sql import S3ToSqlOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.operators.python import PythonOperator
+from airflow.utils.task_group import TaskGroup
+import csv
 import os
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 sql_dir = os.path.join(base_dir, 'sql')
 
 def parse_csv_to_list(filepath):
-    import csv
 
     with open(filepath, newline="") as file:
         return [row for row in csv.reader(file)]
 
-
-def test_dag(file):
-    print(file)
-
+def create_key_table_pairs(key):
+    key_table_pair = {
+        "key": f"{key}",
+        "table": f"{key}"
+    }
+    return key_table_pair
 
 with DAG(
     "s3_to_postgres_ingest",
@@ -27,7 +30,6 @@ with DAG(
     schedule=None,
     template_searchpath=[sql_dir, 'include/sql']
 ) as dag:
-    # TODO test
     # https://stackoverflow.com/questions/2829158/truncating-all-tables-in-a-postgres-database
     truncate_staging = PostgresOperator(
         task_id="truncate_staging",
@@ -36,27 +38,28 @@ with DAG(
         params={"schema": "staging"},
     )
 
-# # TODO get list of files in s3
-#     list_s3_objects = S3ListOperator(
-#         bucket = "s3_datalake",
-#         task_id= "S3_List",
-#         aws_conn_id="s3_datalake"
-#     )
+# get list of files in s3
+    list_s3_objects = S3ListOperator(
+        bucket = "civic-data-warehouse-lz",
+        task_id= "S3_List",
+        aws_conn_id="s3_datalake"
+    )
 
-# #  TODO requires testing, likely broken
-#     with list_s3_objects as govt_files:
-#         for file in govt_files:
-#             test_file = PythonOperator(
-#                 task_id="test_operator" + file,
-#                 python_callable= test_dag(),
-#                 op_kwargs=file
-#             )
-#
-#             # transfer_s3_to_sql = S3ToSqlOperator(
-#             #     task_id="transfer_s3_to_sql" + file,
-#             #     s3_bucket="s3_datalake",
-#             #     s3_key=file,
-#             #     table=file,
-#             #     parser=parse_csv_to_list,
-#             #     sql_conn_id='cdw-dev',
-#             # )
+# TODO Iterate through files and ingest into Postgres
+    with TaskGroup('file_ingest_task_group',
+                   prefix_group_id=False,
+                   ):
+
+            key_table_pairs = create_key_table_pairs(list_s3_objects.output)
+
+            for item in key_table_pairs.items():
+                transfer_s3_to_sql = S3ToSqlOperator(
+                    task_id="transfer_s3_to_sql_" + item[0],
+                    table = item[1],
+                    s3_key = item[0],
+                    s3_bucket='civic-data-warehouse-lz',
+                    parser=parse_csv_to_list,
+                    sql_conn_id='cdw-dev',
+                )
+
+    truncate_staging >> list_s3_objects >> transfer_s3_to_sql
