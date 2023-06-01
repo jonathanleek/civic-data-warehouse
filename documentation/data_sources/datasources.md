@@ -28,3 +28,11 @@ Source Summary
    3. LRA approved community garden status
 5. Services provided by Forestry division (e.g. lawn mowing)
 
+
+# TODO
+1. Add specific urls for data sources
+2. Special information about APIs used
+3. Mention the information below about the data sources
+     Type, format, schema, location, frequency, volume, data quality, 
+     security requirements (validation rules, encryption, access control) 
+
