@@ -4,14 +4,14 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 import os
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
-sql_dir = os.path.join(base_dir, 'sql')
+sql_dir = os.path.join(base_dir, "sql")
 
 with DAG(
     "cdw_creation",
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule_interval=None,
-    template_searchpath=[sql_dir, 'include/sql']
+    template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
     # Create schema "staging" in cdw database
     create_staging = PostgresOperator(
