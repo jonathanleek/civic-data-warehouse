@@ -20,8 +20,7 @@ def execute_query(query, conn_id):
     hook.run(sql=query)
 
 
-def upload_to_postgres(filename, postgres_conn):
-    # TODO Add handling of empty files
+def create_tables_in_postgres(filename, postgres_conn):
     tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
     fileInput = open(filename, "r")
     # Extract first line of file
@@ -32,7 +31,7 @@ def upload_to_postgres(filename, postgres_conn):
 
     # Build SQL code to drop table if exists and create table
     sqlQueryCreate = ""
-    sqlQueryCreate += "CREATE TABLE CDW.STAGING." + tablename + "("
+    sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + "("
 
     # Define columns for table
     for column in columns:
@@ -50,4 +49,4 @@ def upload_to_postgres(filename, postgres_conn):
 
 def s3_to_postgres(bucket, s3_conn_id, postgres_conn_id, key):
     download_from_s3(key=key, bucket_name=bucket, s3_conn_id=s3_conn_id)
-    upload_to_postgres(filename="/tmp/" + key, postgres_conn=postgres_conn_id)
+    create_tables_in_postgres(filename="/tmp/" + key, postgres_conn=postgres_conn_id)

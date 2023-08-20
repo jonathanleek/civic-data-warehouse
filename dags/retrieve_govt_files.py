@@ -1,4 +1,3 @@
-from airflow.models import Variable
 import json
 from airflow import DAG
 from datetime import datetime, timedelta
@@ -7,7 +6,6 @@ from include.retrieve_gov_file import retrieve_gov_file
 
 gov_files = "include/gov_files.json"
 BUCKET = "civic-data-warehouse-lz"
-# TODO convert to dynamic dags instead of tasks
 # Tasks currently fail if run on all gov_docs at once, but confirmed to work in smaller batches. Worker resource constraints?
 with DAG(
     "govt_file_download",

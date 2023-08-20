@@ -5,7 +5,7 @@ DECLARE
         WHERE schemaname = schema;
 BEGIN
     FOR stmt IN statements LOOP
-        EXECUTE 'TRUNCATE TABLE ' || quote_ident(stmt.tablename) || ' CASCADE;';
+        EXECUTE 'TRUNCATE TABLE ' || schema || '.' || quote_ident(stmt.tablename) || ' CASCADE;';
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
