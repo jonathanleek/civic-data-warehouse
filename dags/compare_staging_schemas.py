@@ -7,7 +7,7 @@ with DAG(
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule=None,
-    description="Doesn't work, just keeping for referencing logic while building new processes"
+    description="Doesn't work, just keeping for referencing logic while building new processes",
 ) as dag:
     # truncate dead_records and updated_records schemas
     truncate_dead_records = PostgresOperator(

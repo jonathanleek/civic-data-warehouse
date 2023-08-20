@@ -33,7 +33,7 @@
         "file_location": "http://www.stlouis-mo.gov/data/upload/data-files/lra_public.zip"
     },
     {
-        "file_name": "forestry_maintenance-properties.csv",
+        "file_name": "forestry_maintenance_properties.csv",
         "file_location": "http://www.stlouis-mo.gov/data/upload/data-files/forestry-maintenance-properties.csv"
     }
   ]

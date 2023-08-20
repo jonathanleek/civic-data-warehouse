@@ -1,1 +1,0 @@
-TRUNCATE Table dataprep.dead_records

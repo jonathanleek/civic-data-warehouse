@@ -105,6 +105,6 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
                 s3_conn_id=s3_conn_id,
                 filename=PATH_TO_FILE,
                 bucket=BUCKET,
-                key="unpacked/" + OBJECT,
+                key=OBJECT,
             )
             print(file + " successfully loaded to S3")

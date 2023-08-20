@@ -1,1 +1,0 @@
---TODO staging_2 all tables LEFT JOIN to corresponding staging_1 tables on primary keys. Insert into dead_records_schema

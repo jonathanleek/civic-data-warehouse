@@ -1,1 +1,1 @@
-SELECT truncate_tables();
+SELECT truncate_tables('{{ params.schema }}');
