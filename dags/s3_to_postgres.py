@@ -12,10 +12,6 @@ sql_dir = os.path.join(base_dir, "sql")
 BUCKET = "civic-data-warehouse-lz"
 
 
-def list_string_to_list_dict():
-    return {"key": "PrclCode_CdResModel.csv"}
-
-
 def prepare_s3_list(unprepared_list):
     file_dict = []
     for i in unprepared_list:
