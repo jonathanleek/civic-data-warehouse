@@ -1,4 +1,4 @@
-FROM quay.io/astronomer/astro-runtime:7.4.2
+FROM quay.io/astronomer/astro-runtime:9.1.0
 
 ENV AWS_ACCESS_KEY_ID="<aws_access_key>"
 ENV AWS_SECRET_ACCESS_KEY="<aws_secret_key>"
