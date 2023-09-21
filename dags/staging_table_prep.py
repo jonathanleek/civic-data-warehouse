@@ -1,3 +1,9 @@
+doc_md_DAG = """
+### govt_file_download
+
+This dag truncates any existing tables in the staging schema, the creates a table for any file found in the s3 bucket.
+"""
+
 from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -20,10 +26,11 @@ def prepare_s3_list(unprepared_list):
 
 
 with DAG(
-    "s3_to_postgres_ingest",
+    "staging_table_prep",
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule=None,
+    doc_md=doc_md_DAG,
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
     truncate_staging = PostgresOperator(
@@ -45,13 +52,13 @@ with DAG(
     )
 
     with TaskGroup(
-        "file_ingest_task_group",
+        "table_creation_task_group",
         prefix_group_id=False,
     ):
-        transfer_s3_to_sql = PythonOperator.partial(
-            task_id="s3_to_postgres",
+        create_staging_tables = PythonOperator.partial(
+            task_id="create_staging_tables",
             python_callable=s3_to_postgres,
             op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
         ).expand(op_kwargs=prepare_list.output)
 
-truncate_staging >> list_s3_objects >> prepare_list >> transfer_s3_to_sql
+truncate_staging >> list_s3_objects >> prepare_list >> create_staging_tables
