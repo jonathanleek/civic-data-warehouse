@@ -11,7 +11,7 @@ from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 import os
-from include.s3_csv_to_postgres import s3_to_postgres
+from include.staging_table_prep import create_staging_tables
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 sql_dir = os.path.join(base_dir, "sql")
@@ -57,7 +57,7 @@ with DAG(
     ):
         create_staging_tables = PythonOperator.partial(
             task_id="create_staging_tables",
-            python_callable=s3_to_postgres,
+            python_callable=create_staging_tables,
             op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
         ).expand(op_kwargs=prepare_list.output)
 

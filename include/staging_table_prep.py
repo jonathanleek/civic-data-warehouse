@@ -51,6 +51,6 @@ def csv_to_postgres(filename, postgres_conn):
 
 
 
-def s3_to_postgres(bucket, s3_conn_id, postgres_conn_id, key):
+def create_staging_tables(bucket, s3_conn_id, postgres_conn_id, key):
     download_from_s3(key=key, bucket_name=bucket, s3_conn_id=s3_conn_id)
     create_tables_in_postgres(filename="/tmp/" + key, postgres_conn=postgres_conn_id)
