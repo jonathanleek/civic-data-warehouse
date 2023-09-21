@@ -1,3 +1,15 @@
+doc_md_DAG = """
+### govt_file_download
+
+This dag downloads files listed in include/gov_files.json to the worker, where they are recursively unzipped, converted to csvs, and pushed to the s3 bucket.
+Python script being run can be found at include/retrieve_gov_file.py
+Currently converts the following file formats. All others are loaded to s3 after unzipping.
+- .mdb
+
+
+"""
+
+
 import json
 from airflow import DAG
 from datetime import datetime, timedelta
@@ -13,6 +25,7 @@ with DAG(
     schedule_interval=timedelta(days=1),
     start_date=datetime(2022, 6, 24),
     catchup=False,
+    doc_md=doc_md_DAG,
     default_args={"retries": 3, "retry_delay": timedelta(minutes=1)},
 ) as dag:
     with open(gov_files, "r") as read_file:
