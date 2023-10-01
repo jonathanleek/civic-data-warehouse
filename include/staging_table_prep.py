@@ -24,14 +24,14 @@ def create_tables_in_postgres(filename, postgres_conn):
     tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
     fileInput = open(filename, "r")
     # Extract first line of file
-    firstLine = fileInput.readline().strip()
+    firstLine = fileInput.readline().strip().replace("(", "").replace(")", "").replace(" ", "")
 
     # Split columns into an array [...]
     columns = firstLine.split(",")
 
     # Build SQL code to drop table if exists and create table
     sqlQueryCreate = ""
-    sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + "("
+    sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " ("
 
     # Define columns for table
     for column in columns:
@@ -45,11 +45,6 @@ def create_tables_in_postgres(filename, postgres_conn):
 
     # run sqlQueryCreate in Postgres
     execute_query(sqlQueryCreate, postgres_conn)
-
-def csv_to_postgres(filename, postgres_conn):
-    tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-
-
 
 def create_staging_tables(bucket, s3_conn_id, postgres_conn_id, key):
     download_from_s3(key=key, bucket_name=bucket, s3_conn_id=s3_conn_id)
