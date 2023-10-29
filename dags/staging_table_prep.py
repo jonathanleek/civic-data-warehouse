@@ -11,7 +11,8 @@ from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 import os
-from include.staging_table_prep import create_staging_tables
+from include.staging_table_prep import create_staging_table, populate_staging_table
+
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 sql_dir = os.path.join(base_dir, "sql")
@@ -51,14 +52,16 @@ with DAG(
         op_args=[list_s3_objects.output],
     )
 
-    with TaskGroup(
-        "table_creation_task_group",
-        prefix_group_id=False,
-    ):
-        create_staging_tables = PythonOperator.partial(
-            task_id="create_staging_tables",
-            python_callable=create_staging_tables,
-            op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
-        ).expand(op_kwargs=prepare_list.output)
+    create_staging_tables = PythonOperator.partial(
+        task_id="create_staging_tables",
+        python_callable=create_staging_table,
+        op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
+    ).expand(op_kwargs=prepare_list.output)
 
-truncate_staging >> list_s3_objects >> prepare_list >> create_staging_tables
+    populate_staging_tables = PythonOperator.partial(
+        task_id="populate_staging_tables",
+        python_callable=populate_staging_table,
+        op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
+    ).expand(op_kwargs=prepare_list.output)
+
+truncate_staging >> list_s3_objects >> prepare_list >> create_staging_tables >> populate_staging_tables

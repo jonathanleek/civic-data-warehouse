@@ -2,7 +2,7 @@
   "gov_files":[
     {
         "file_name": "prcl.zip",
-        "file_location": "https://www.stlouis-mo.gov/data/upload/data-files/prcl.zip"
+        "file_location": "http://www.stlouis-mo.gov/data/upload/data-files/prcl.zip"
     },
     {
         "file_name": "building_permit_codes.zip",

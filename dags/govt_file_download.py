@@ -22,7 +22,7 @@ BUCKET = "civic-data-warehouse-lz"
 with DAG(
     "govt_file_download",
     description="Downloads public civic data and saves to s3 for processing",
-    schedule_interval=timedelta(days=1),
+    schedule_interval=None,
     start_date=datetime(2022, 6, 24),
     catchup=False,
     doc_md=doc_md_DAG,
