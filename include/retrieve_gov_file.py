@@ -98,7 +98,7 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id):
     for file in os.listdir("/tmp/prepped/"):
         print(file + " found in /tmp/prepped/ for sending to S3")
         if file.endswith(".csv"):
-            OBJECT = file
+            OBJECT = file.replace(" ", "")
             PATH_TO_FILE = "/tmp/prepped/" + file
             BUCKET = bucket
             upload_to_s3(
