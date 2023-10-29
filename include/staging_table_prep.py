@@ -61,6 +61,8 @@ def SQL_INSERT_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
         sql_texts.append("INSERT INTO CDW.STAGING."+TARGET+' ('+ str(', '.join(SOURCE.columns))+ ') VALUES '+ str(tuple(row.values)))
     return sql_texts
 
+
+# DEMOING BRANCHIONG
 def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
     # Import table from S3 bucket to a pandas dataframe and convert to an array
     hook = S3Hook(aws_conn_id=s3_conn_id)
