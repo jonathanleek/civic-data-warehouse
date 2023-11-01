@@ -2,6 +2,7 @@ import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
+import numpy as np
 from io import StringIO
 
 def download_from_s3(key: str, bucket_name: str, s3_conn_id: str) -> str:
@@ -66,6 +67,10 @@ def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
     hook = S3Hook(aws_conn_id=s3_conn_id)
     obj = hook.read_key(bucket_name=bucket, key=key)
     df = pd.read_csv(StringIO(obj))
+    for column in df.columns:
+        if df[column].dtype ==object:
+            df[column] = df[column].replace("'","''", inplace=True)
+    df.replace(np.nan, 'None', inplace=True)
     records = df.to_records(index=True)
 
     # Read table from S3 bucket
