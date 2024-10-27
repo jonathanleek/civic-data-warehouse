@@ -1,0 +1,12 @@
+cdw_setup_dag:
+  dag_id: "cdw_setup_dag"
+  description: "Simplified DAG for testing"
+  schedule_interval: "@once"
+  default_args:
+    owner: "airflow"
+    start_date: "2024-01-01"
+    retries: 1
+  tasks:
+    start_task:
+      operator: airflow.operators.empty.EmptyOperator
+      task_id: "start_task"
