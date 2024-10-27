@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  civic-data-warehouse:
+    image: postgres:latest
+    container_name: civic_data_warehouse
+    environment:
+      POSTGRES_USER: civic_user
+      POSTGRES_PASSWORD: civic_password
+      POSTGRES_DB: civic_data_warehouse
+    ports:
+      - "6432:5432"  # Expose PostgreSQL on port 6432
+    volumes:
+      - cdw_civic_data_warehouse_data_volume:/var/lib/postgresql/data
+    restart: always
+
+  superset-postgres:
+    image: postgres:latest
+    container_name: superset_postgres
+    environment:
+      POSTGRES_USER: superset_user
+      POSTGRES_PASSWORD: superset_password
+      POSTGRES_DB: superset
+    ports:
+      - "7432:5432"  # Expose PostgreSQL on port 7432
+    volumes:
+      - cdw_superset_postgres_data_volume:/var/lib/postgresql/data
+    restart: always
+
+  s3mock:
+    image: adobe/s3mock
+    container_name: my_s3mock
+    ports:
+      - "9090:9090"
+      - "9191:9191"
+    environment:
+      initialBuckets: my-bucket
+    volumes:
+      - cdw_s3mock_data_volume:/data
+    restart: always
+
+  superset:
+    image: apache/superset:latest
+    container_name: my_superset
+    environment:
+      SUPERSET_ENV: development
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      POSTGRES_USER: superset_user
+      POSTGRES_PASSWORD: superset_password
+      POSTGRES_DB: superset
+      POSTGRES_HOST: superset_postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - superset-postgres
+    ports:
+      - "8088:8088"
+    volumes:
+      - cdw_superset_home_data_volume:/app/superset_home
+    command:
+      [
+        "bash",
+        "-c",
+        "superset db upgrade && superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@example.com --password admin && superset load_examples && superset init && superset run -p 8088 --with-threads --reload --debugger",
+      ]
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com  # pgAdmin default login
+      PGADMIN_DEFAULT_PASSWORD: admin         # pgAdmin default password
+    ports:
+      - "5050:80"  # Expose pgAdmin on port 5050
+    volumes:
+      - cdw_pgadmin_data_volume:/var/lib/pgadmin
+    restart: always
+
+volumes:
+  cdw_civic_data_warehouse_data_volume:
+  cdw_superset_postgres_data_volume:
+  cdw_s3mock_data_volume:
+  cdw_superset_home_data_volume:
+  cdw_pgadmin_data_volume:
