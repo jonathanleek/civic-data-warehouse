@@ -2,3 +2,4 @@
 dag-factory
 apache-airflow-providers-postgres
 apache-airflow
+apache-airflow-providers-amazon
