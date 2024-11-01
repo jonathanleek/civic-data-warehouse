@@ -19,7 +19,9 @@ services:
       - cdw_civic_data_warehouse_data_volume:/var/lib/postgresql/data
     restart: always
     networks:
-      - airflow_network
+      airflow_network:
+        aliases:
+          - civic_data_warehouse
 
   superset-postgres:
     image: postgres:latest
@@ -34,7 +36,9 @@ services:
       - cdw_superset_postgres_data_volume:/var/lib/postgresql/data
     restart: always
     networks:
-      - airflow_network
+      airflow_network:
+        aliases:
+          - superset_postgres
 
   s3mock:
     image: adobe/s3mock
@@ -48,7 +52,10 @@ services:
       - cdw_s3mock_data_volume:/data
     restart: always
     networks:
-      - airflow_network
+      airflow_network:
+        aliases:
+          - s3mock
+          - my_s3mock
 
   superset:
     image: apache/superset:latest
@@ -75,7 +82,9 @@ services:
       ]
     restart: always
     networks:
-      - airflow_network
+      airflow_network:
+        aliases:
+          - my_superset
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -89,7 +98,9 @@ services:
       - cdw_pgadmin_data_volume:/var/lib/pgadmin
     restart: always
     networks:
-      - airflow_network
+      airflow_network:
+        aliases:
+          - pgadmin
 
 volumes:
   cdw_civic_data_warehouse_data_volume:

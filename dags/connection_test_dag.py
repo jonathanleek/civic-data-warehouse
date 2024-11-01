@@ -7,20 +7,20 @@ default_args = {
     'owner': 'airflow',
 }
 
-with DAG(
+with (DAG(
     dag_id='test_connections_dag',
     default_args=default_args,
     schedule_interval='@once',
     start_date=days_ago(1),
     catchup=False,
-) as dag:
+) as dag):
 
     # Test Postgres connection using the new SQLExecuteQueryOperator
     test_postgres = SQLExecuteQueryOperator(
         task_id='test_postgres',
-        conn_id='civic-data-warehouse',
+        conn_id='civic_data_warehouse',
         sql='SELECT 1;',
-        hook_params={'schema': 'civic_data_warehouse'},
+        hook_params={'schema':'civic_data_warehouse'},
     )
 
     # Test S3 mock connection
@@ -30,4 +30,5 @@ with DAG(
         bucket='my-bucket',
     )
 
-    test_postgres >> test_s3
+    # test_postgres >>
+    test_s3

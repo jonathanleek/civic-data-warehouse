@@ -51,7 +51,7 @@ for sql_file in sorted(os.listdir(SQL_SCRIPTS_DIR)):
         # Create a PostgresOperator task for each SQL script
         sql_task = PostgresOperator(
             task_id=task_id,
-            postgres_conn_id="cdw",  # Ensure this connection exists in Airflow
+            postgres_conn_id="civic_data_warehouse",  # Ensure this connection exists in Airflow
             sql=sql_path,
             dag=cdw_setup_dag,
         )
