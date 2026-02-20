@@ -1,5 +1,7 @@
 .git
-.env
+*.env
 airflow_settings.yaml
 astro
 Dockerfile
+temp
+__pycache__
