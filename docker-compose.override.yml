@@ -1,3 +1,10 @@
+x-airflow-local-env: &airflow-local-env
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_DEFAULT_REGION: us-east-1
+  AIRFLOW_CONN_S3_DATALAKE: aws://test:test@/?endpoint_url=http%3A%2F%2Flocalstack%3A4566&region_name=us-east-1
+  AIRFLOW_CONN_CDW-DEV: postgresql://cdw_user:cdw_password@cdw-postgres:5432/cdw
+
 services:
   localstack:
     image: gresau/localstack-persist:latest
@@ -54,6 +61,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  scheduler:
+    environment:
+      <<: *airflow-local-env
+  api-server:
+    environment:
+      <<: *airflow-local-env
+  dag-processor:
+    environment:
+      <<: *airflow-local-env
+  triggerer:
+    environment:
+      <<: *airflow-local-env
 
 volumes:
   localstack_data:
