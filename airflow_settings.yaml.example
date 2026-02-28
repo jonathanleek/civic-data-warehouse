@@ -2,9 +2,9 @@ airflow:
   connections:
     - conn_id: s3_datalake
       conn_type: aws
-      conn_login: minioadmin
-      conn_password: minioadmin
-      conn_extra: '{"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}'
+      conn_login: test
+      conn_password: test
+      conn_extra: '{"endpoint_url": "http://localstack:4566", "region_name": "us-east-1"}'
 
     - conn_id: cdw-dev
       conn_type: postgres
