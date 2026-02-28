@@ -1,13 +1,13 @@
-from airflow import DAG
 from datetime import datetime, timedelta
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.sdk import DAG
 
 with DAG(
     "sql_test", start_date=datetime(2022, 12, 30), max_active_runs=1, schedule=None
 ) as dag:
-    truncate_staging = PostgresOperator(
+    truncate_staging = SQLExecuteQueryOperator(
         task_id="sql_test",
-        postgres_conn_id="cdw-dev",
+        conn_id="cdw-dev",
         sql="SELECT * FROM CDW.Staging.test_table",
         params={"schema": "staging"},
     )

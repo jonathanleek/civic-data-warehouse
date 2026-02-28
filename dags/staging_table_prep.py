@@ -4,14 +4,14 @@ doc_md_DAG = """
 This dag truncates any existing tables in the staging schema, the creates a table for any file found in the s3 bucket.
 """
 
-from airflow import DAG
 from datetime import datetime, timedelta
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
-from airflow.operators.python import PythonOperator
-from airflow.utils.task_group import TaskGroup
+from airflow.sdk import TaskGroup
 import os
 from include.staging_table_prep import create_staging_table, populate_staging_table
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.python import PythonOperator
 
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -34,9 +34,9 @@ with DAG(
     doc_md=doc_md_DAG,
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
-    truncate_staging = PostgresOperator(
+    truncate_staging = SQLExecuteQueryOperator(
         task_id="truncate_staging",
-        postgres_conn_id="cdw-dev",
+        conn_id="cdw-dev",
         sql=f"truncate_schema.sql",
         params={"schema": "staging"},
     )

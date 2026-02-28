@@ -1,16 +1,14 @@
 import json
 from datetime import datetime, timedelta
 
-from airflow.decorators import (
-    dag,
-    task,
-)  # DAG and task decorators for interfacing with the TaskFlow API
+from airflow.sdk import dag
+from airflow.sdk import task
 
 
 @dag(
     # This defines how often your DAG will run, or the schedule by which your DAG runs. In this case, this DAG
     # will run daily
-    schedule_interval="@daily",
+    schedule="@daily",
     # This DAG is set to run for the first time on January 1, 2021. Best practice is to use a static
     # start_date. Subsequent DAG runs are instantiated based on scheduler_interval
     start_date=datetime(2021, 1, 1),

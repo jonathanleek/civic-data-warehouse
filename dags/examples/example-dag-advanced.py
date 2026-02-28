@@ -5,30 +5,14 @@ from typing import Dict
 # To use an operator in your DAG, you first have to import it.
 # To learn more about operators, see: https://registry.astronomer.io/.
 
-from airflow.decorators import (
-    dag,
-    task,
-)  # DAG and task decorators for interfacing with the TaskFlow API
-from airflow.models.baseoperator import (
-    chain,
-)  # A function that sets sequential dependencies between tasks including lists of tasks.
-from airflow.operators.bash import BashOperator
-from airflow.operators.dummy import DummyOperator
-from airflow.operators.email import EmailOperator
-from airflow.operators.python import BranchPythonOperator
-from airflow.operators.weekday import BranchDayOfWeekOperator
-from airflow.utils.edgemodifier import (
-    Label,
-)  # Used to label node edges in the Airflow UI
-from airflow.utils.task_group import (
-    TaskGroup,
-)  # Used to group tasks together in the Graph view of the Airflow UI
-from airflow.utils.trigger_rule import (
-    TriggerRule,
-)  # Used to change how an Operator is triggered
-from airflow.utils.weekday import (
-    WeekDay,
-)  # Used to determine what day of the week it is
+from airflow.sdk import task, dag, chain, TaskGroup, Label
+from airflow.utils.trigger_rule import TriggerRule
+from airflow.providers.standard.utils.weekday import WeekDay
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.smtp.operators.smtp import EmailOperator
+from airflow.providers.standard.operators.python import BranchPythonOperator
+from airflow.providers.standard.operators.weekday import BranchDayOfWeekOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
 
 
 """
@@ -117,7 +101,7 @@ def _get_activity(day_name) -> str:
     max_active_runs=1,
     # This defines how often your DAG will run, or the schedule by which DAG runs are created. It can be
     # defined as a cron expression or custom timetable. This DAG will run daily.
-    schedule_interval="@daily",
+    schedule="@daily",
     # Default settings applied to all tasks within the DAG; can be overwritten at the task level.
     default_args={
         "owner": "community",  # This defines the value of the "owner" column in the DAG view of the Airflow UI
@@ -126,7 +110,6 @@ def _get_activity(day_name) -> str:
             minutes=3
         ),  # A task that fails will wait 3 minutes to retry.
     },
-    default_view="graph",  # This defines the default view for this DAG in the Airflow UI
     # When catchup=False, your DAG will only run for the latest schedule interval. In this case, this means
     # that tasks will not be run between June 11, 2021 and 1 day ago. When turned on, this DAG's first run
     # will be for today, per the @daily schedule interval
@@ -135,9 +118,9 @@ def _get_activity(day_name) -> str:
 )
 def example_dag_advanced():
     # DummyOperator placeholder for first task
-    begin = DummyOperator(task_id="begin")
+    begin = EmptyOperator(task_id="begin")
     # Last task will only trigger if no previous task failed
-    end = DummyOperator(task_id="end", trigger_rule=TriggerRule.NONE_FAILED)
+    end = EmptyOperator(task_id="end", trigger_rule=TriggerRule.NONE_FAILED)
 
     # This task checks which day of the week it is
     check_day_of_week = BranchDayOfWeekOperator(
@@ -145,11 +128,11 @@ def example_dag_advanced():
         week_day={WeekDay.SATURDAY, WeekDay.SUNDAY},  # This checks day of week
         follow_task_ids_if_true="weekend",  # Next task if criteria is met
         follow_task_ids_if_false="weekday",  # Next task if criteria is not met
-        use_task_execution_day=True,  # If True, uses task’s execution day to compare with is_today
+        use_task_logical_date=True,  # If True, uses task’s execution day to compare with is_today
     )
 
-    weekend = DummyOperator(task_id="weekend")  # "weekend" placeholder task
-    weekday = DummyOperator(task_id="weekday")  # "weekday" placeholder task
+    weekend = EmptyOperator(task_id="weekend")  # "weekend" placeholder task
+    weekday = EmptyOperator(task_id="weekday")  # "weekday" placeholder task
 
     # Templated value for determining the name of the day of week based on the start date of the DAG Run
     day_name = "{{ dag_run.start_date.strftime('%A').lower() }}"
