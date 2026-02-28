@@ -26,24 +26,101 @@ Requirements
 - [docker desktop](https://docs.docker.com/get-docker/) `>= v18.09`
 
 
-Deploy Your Project Locally
-===========================
+Local Development Setup
+=======================
 
-1. Start Airflow on your local machine by running `astro dev start`.
+The `cdw_creation` and `staging_table_prep` DAGs require a `cdw-dev` Postgres connection. In production this points to AWS Aurora. For local development, a self-contained Postgres container is provided — no AWS credentials required.
 
-This command will spin up 3 Docker containers on your machine, each for a different Airflow component:
+### Prerequisites
 
-- Postgres: Airflow's Metadata Database
-- Webserver: The Airflow component responsible for rendering the Airflow UI
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
+- [Astro CLI](https://docs.astronomer.io/astro/cli/install-cli)
+- [Docker Desktop](https://docs.docker.com/get-docker/) >= v18.09
 
-2. Verify that all 3 Docker containers were created by running `docker ps`.
+### First-time setup
 
-Note: Running `astro dev start` will start your project with the Airflow Webserver exposed at port 8080 and Postgres exposed at port 5432. If you already have either of those ports allocated, you can either stop your existing Docker containers or change the port.
+**1. Copy the Airflow settings template**
 
-3. Access the Airflow UI for your local Airflow project. To do so, go to http://localhost:8080/ and log in with 'admin' for both your Username and Password.
+```
+cp airflow_settings.yaml.example airflow_settings.yaml
+```
 
-You should also be able to access your Postgres Database at `localhost:5432/postgres`.
+`airflow_settings.yaml` is gitignored. The example file pre-configures the `cdw-dev` connection to point at the local Postgres container.
+
+**2. Disable the AWS secrets backend**
+
+Create a `.env` file in the project root (also gitignored):
+
+```
+AIRFLOW__SECRETS__BACKEND=
+AIRFLOW__SECRETS__BACKEND_KWARGS=
+```
+
+This stops Airflow from querying AWS SSM for connections. Without it, the SSM backend overrides the local `cdw-dev` connection even when AWS credentials are absent.
+
+**3. Start the stack**
+
+```
+astro dev start
+```
+
+This starts five containers: Airflow webserver, scheduler, triggerer, metadata Postgres, and the local CDW Postgres. Verify with:
+
+```
+docker ps
+```
+
+You should see a container whose name ends in `cdw-postgres` mapped to host port `5433`.
+
+**4. Register the cdw-dev connection**
+
+Astro reads `airflow_settings.yaml` on start, but if it fails (e.g. in a non-interactive shell), add the connection manually:
+
+```
+docker exec <project>-webserver-1 airflow connections add cdw-dev \
+  --conn-type postgres \
+  --conn-host cdw-postgres \
+  --conn-schema postgres \
+  --conn-login postgres \
+  --conn-password postgres \
+  --conn-port 5432
+```
+
+Replace `<project>-webserver-1` with the actual container name shown by `docker ps`.
+
+**5. Initialize CDW schemas**
+
+Open the Airflow UI at http://localhost:8080 (login: `admin` / `admin`) and trigger the `cdw_creation` DAG manually. All tasks should succeed. This creates the `staging`, `current`, and `history` schemas in the local CDW database.
+
+**6. (Optional) Connect with DBeaver or another SQL client**
+
+| Field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5433` |
+| Database | `postgres` |
+| User | `postgres` |
+| Password | `postgres` |
+
+### Port reference
+
+| Service | Host port | Internal hostname | Notes |
+|---|---|---|---|
+| Airflow UI | 8080 | — | http://localhost:8080 |
+| Airflow metadata Postgres | 5432 | `postgres` | Internal Airflow use only |
+| CDW Postgres | 5433 | `cdw-postgres` | `localhost:5433` externally; `cdw-postgres:5432` inside Docker |
+
+### Subsequent starts
+
+`astro dev start` and `astro dev restart` will bring everything up automatically. The CDW Postgres data persists in a named Docker volume (`cdw-postgres-data`) between restarts. To wipe and reinitialize:
+
+```
+astro dev stop
+docker volume rm <project>_cdw-postgres-data
+astro dev start
+```
+
+Then re-trigger `cdw_creation` to recreate the schemas.
+
 
 Deploy Your Project to Astronomer
 =================================

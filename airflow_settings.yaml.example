@@ -1,22 +1,16 @@
 airflow:
   connections:
-    - conn_id: s3_datalake
-      conn_type: aws
-      conn_login: test
-      conn_password: test
-      conn_extra: '{"endpoint_url": "http://localstack:4566", "region_name": "us-east-1"}'
-
     - conn_id: cdw-dev
       conn_type: postgres
-      conn_host: cdw-postgres
-      conn_schema: cdw
-      conn_login: cdw_user
-      conn_password: cdw_password
-      conn_port: 5432
-
-  variables: []
-
+      conn_host: cdw-postgres   # Docker service name, reachable by Airflow containers
+      conn_schema: postgres
+      conn_login: postgres
+      conn_password: postgres
+      conn_port: 5432           # Internal Docker port
   pools:
-    - pool_name: default_pool
-      pool_slot: 128
-      pool_description: ""
+    - pool_name:
+      pool_slot:
+      pool_description:
+  variables:
+    - variable_name:
+      variable_value:
