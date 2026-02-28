@@ -10,6 +10,7 @@ import os
 
 from airflow.sdk import DAG
 from airflow.sensors.external_task import ExternalTaskSensor
+from airflow.utils.state import DagRunState
 from airflow.providers.standard.operators.bash import BashOperator
 
 
@@ -29,8 +30,8 @@ with DAG(
         task_id="wait_for_staging_table_prep",
         external_dag_id="staging_table_prep",
         external_task_id=None,
-        allowed_states=["success"],
-        failed_states=["failed", "skipped"],
+        allowed_states=[DagRunState.SUCCESS],
+        failed_states=[DagRunState.FAILED],
         mode="reschedule",
         poke_interval=60,
         timeout=60 * 60,
