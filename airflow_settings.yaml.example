@@ -1,0 +1,22 @@
+airflow:
+  connections:
+    - conn_id: s3_datalake
+      conn_type: aws
+      conn_login: test
+      conn_password: test
+      conn_extra: '{"endpoint_url": "http://localstack:4566", "region_name": "us-east-1"}'
+
+    - conn_id: cdw-dev
+      conn_type: postgres
+      conn_host: cdw-postgres
+      conn_schema: cdw
+      conn_login: cdw_user
+      conn_password: cdw_password
+      conn_port: 5432
+
+  variables: []
+
+  pools:
+    - pool_name: default_pool
+      pool_slot: 128
+      pool_description: ""

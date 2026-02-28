@@ -1,0 +1,63 @@
+services:
+  localstack:
+    image: gresau/localstack-persist:latest
+    container_name: cdw_localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+      PERSIST_S3: 1
+    volumes:
+      - localstack_data:/persisted-data
+    networks:
+      - airflow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  localstack-init:
+    image: amazon/aws-cli:latest
+    container_name: cdw_localstack_init
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - airflow
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: >
+      /bin/sh -c "
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://civic-data-warehouse-lz 2>/dev/null || true;
+      echo 'Bucket civic-data-warehouse-lz created';
+      "
+
+  cdw-postgres:
+    image: postgres:15
+    container_name: cdw_postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: cdw
+      POSTGRES_USER: cdw_user
+      POSTGRES_PASSWORD: cdw_password
+    volumes:
+      - cdw_postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdw_user -d cdw"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  localstack_data:
+  cdw_postgres_data:
+
+networks:
+  airflow:
