@@ -1,8 +1,59 @@
-SETTING UP YOUR LOCAL ENVIRONMENT
-1. Install the [Astro CLI](https://docs.astronomer.io/astro/cli/overview)
-2. Clone this repository to your machine
-3. Make a copy of Dockerfile_Example and name it `Dockerfile`
-4. Fill out the Dockerfile with your AWS credentials. You can set up AWS resources according to the requirements in documentation/process.md, or jonathanleek can provide you credentials to his environment if you are local.
-5. From the commandline, initialize this directory using `astro dev init`
+## Setting Up Your Local Environment
 
-From this point, you can bring up  your local Airflow environment using `astro dev start` while you are developing, and use `astro dev stop` to stop the environment when not in use.
+### Prerequisites
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (>= v18.09)
+2. Install the [Astro CLI](https://docs.astronomer.io/astro/cli/overview)
+3. Clone this repository
+
+### Local Setup (no AWS required)
+
+1. Create your Dockerfile from the local template:
+   ```
+   cp Dockerfile.local Dockerfile
+   ```
+
+2. Create your Airflow settings file:
+   ```
+   cp airflow_settings.yaml.example airflow_settings.yaml
+   ```
+
+3. Start the environment:
+   ```
+   astro dev start
+   ```
+
+This brings up five containers:
+- **Airflow Webserver** — http://localhost:8080 (admin/admin)
+- **Airflow Scheduler**
+- **Airflow Metadata Postgres** — localhost:5444
+- **MinIO (local S3)** — http://localhost:9001 (minioadmin/minioadmin)
+- **CDW Postgres** — localhost:5433 (cdw_user/cdw_password, database: cdw)
+
+### Running the Pipeline
+
+Trigger DAGs in this order from the Airflow UI:
+
+1. **`cdw_creation`** — creates the staging/current/history schemas in CDW Postgres
+2. **`govt_file_download`** — downloads civic data from stlouis-mo.gov, converts to CSV, uploads to MinIO
+3. **`staging_table_prep`** — reads CSVs from MinIO, creates and populates staging tables in CDW Postgres
+
+You can browse uploaded files in the MinIO console at http://localhost:9001.
+
+### Cloud Setup (AWS required)
+
+If you need to connect to the production AWS environment instead:
+
+1. Copy the cloud Dockerfile template:
+   ```
+   cp Dockerfile_Example Dockerfile
+   ```
+2. Fill in your AWS credentials in the Dockerfile
+3. Remove or skip creating `airflow_settings.yaml` (connections come from AWS SSM)
+4. Run `astro dev start`
+
+### Useful Commands
+
+- `astro dev start` — start the local environment
+- `astro dev stop` — stop containers (data is preserved)
+- `astro dev restart` — rebuild and restart (use after changing Dockerfile or requirements.txt)
+- `astro dev kill` — stop and remove all containers and volumes (resets all data)

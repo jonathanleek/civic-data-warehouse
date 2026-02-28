@@ -1,60 +1,63 @@
-x-airflow-local-env: &airflow-local-env
-  AIRFLOW__SECRETS__BACKEND: ""
-  AWS_ACCESS_KEY_ID: test
-  AWS_SECRET_ACCESS_KEY: test
-  AWS_DEFAULT_REGION: us-east-1
-  AIRFLOW_CONN_S3_DATALAKE: aws://test:test@/?endpoint_url=http%3A%2F%2Flocalstack%3A4566&region_name=us-east-1
-  AIRFLOW_CONN_CDW-DEV: postgresql://cdw_user:cdw_password@postgres-cdw:5432/cdw
-
 services:
   localstack:
-    container_name: "localstack-s3only"
-    image: localstack/localstack
-    networks:
-      - airflow
+    image: gresau/localstack-persist:latest
+    container_name: cdw_localstack
     ports:
-      - "127.0.0.1:4566:4566"
-    env_file:
-      - .localstack.env
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+      PERSIST_S3: 1
     volumes:
-      - "./localstack:/docker-entrypoint-initaws.d"
-  postgres-cdw:
-    image: postgres:latest
-    env_file:
-      - .postgres_cdw.env
+      - localstack_data:/persisted-data
     networks:
       - airflow
-    ports:
-      - "127.0.0.1:5532:5432"
-    # At this time, I do not want this info to persist from run to run / build to build.
-    #  (I also don't know if the volume path below will work, so...)
-    # volumes:
-    #   - postgres-db-volume:/var/lib/postgresql/cdw
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "cdw_user", "-d", "cdw"]
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s
-      retries: 5
-      start_period: 5s
-    restart: always
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    restart: always
+      timeout: 5s
+      retries: 3
+
+  localstack-init:
+    image: amazon/aws-cli:latest
+    container_name: cdw_localstack_init
+    depends_on:
+      localstack:
+        condition: service_healthy
     networks:
       - airflow
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: >
+      /bin/sh -c "
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://civic-data-warehouse-lz 2>/dev/null || true;
+      echo 'Bucket civic-data-warehouse-lz created';
+      "
+
+  cdw-postgres:
+    image: postgres:15
+    container_name: cdw_postgres
     ports:
-      - "127.0.0.1:8081:80"
-    env_file:
-      - .pgadmin.env
-  scheduler:
+      - "5433:5432"
     environment:
-      <<: *airflow-local-env
-  api-server:
-    environment:
-      <<: *airflow-local-env
-  dag-processor:
-    environment:
-      <<: *airflow-local-env
-  triggerer:
-    environment:
-      <<: *airflow-local-env
+      POSTGRES_DB: cdw
+      POSTGRES_USER: cdw_user
+      POSTGRES_PASSWORD: cdw_password
+    volumes:
+      - cdw_postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdw_user -d cdw"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  localstack_data:
+  cdw_postgres_data:
+
+networks:
+  airflow:
