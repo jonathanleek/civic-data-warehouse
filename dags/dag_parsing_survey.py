@@ -1,8 +1,8 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
 from airflow.models import DagBag
 from datetime import datetime, timedelta
 import time
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.python import PythonOperator
 
 
 def survey_dag_parsing_times(**kwargs):
@@ -47,13 +47,12 @@ with DAG(
     "survey_dag_parsing_times",
     default_args=default_args,
     description="A DAG to survey DAG parsing times",
-    schedule_interval=timedelta(days=1),
+    schedule=timedelta(days=1),
     catchup=False,
 ) as dag:
     survey_task = PythonOperator(
         task_id="survey_dag_parsing_times_task",
         python_callable=survey_dag_parsing_times,
-        provide_context=True,
     )
 
     survey_task

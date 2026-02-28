@@ -1,3 +1,7 @@
 wget
-apache-airflow-providers-amazon==7.4.1
+apache-airflow-providers-amazon
+apache-airflow-providers-postgres
+apache-airflow-providers-common-sql
+apache-airflow-providers-standard
+apache-airflow-providers-smtp
 xlrd==2.0.2
