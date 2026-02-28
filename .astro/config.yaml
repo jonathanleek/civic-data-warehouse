@@ -1,2 +1,4 @@
+postgres:
+    port: "5444"
 project:
-  name: civic-data-warehouse
+    name: civic-data-warehouse
