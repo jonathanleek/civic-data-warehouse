@@ -1,36 +1,38 @@
 services:
-  minio:
-    image: minio/minio:latest
-    container_name: cdw_minio
+  localstack:
+    image: localstack/localstack:latest
+    container_name: cdw_localstack
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "4566:4566"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+      PERSISTENCE: 1
     volumes:
-      - minio_data:/data
+      - localstack_data:/var/lib/localstack
     networks:
       - airflow
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  minio-init:
-    image: minio/mc:latest
-    container_name: cdw_minio_init
+  localstack-init:
+    image: amazon/aws-cli:latest
+    container_name: cdw_localstack_init
     depends_on:
-      minio:
+      localstack:
         condition: service_healthy
     networks:
       - airflow
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 minioadmin minioadmin;
-      mc mb local/civic-data-warehouse-lz --ignore-existing;
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://civic-data-warehouse-lz 2>/dev/null || true;
       echo 'Bucket civic-data-warehouse-lz created';
       "
 
@@ -54,7 +56,7 @@ services:
       retries: 5
 
 volumes:
-  minio_data:
+  localstack_data:
   cdw_postgres_data:
 
 networks:
