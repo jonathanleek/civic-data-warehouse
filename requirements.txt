@@ -1,2 +1,3 @@
 wget
 apache-airflow-providers-amazon==7.4.1
+xlrd==2.0.2
