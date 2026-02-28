@@ -1,15 +1,15 @@
 services:
   localstack:
-    image: localstack/localstack:latest
+    image: gresau/localstack-persist:latest
     container_name: cdw_localstack
     ports:
       - "4566:4566"
     environment:
       SERVICES: s3
       DEFAULT_REGION: us-east-1
-      PERSISTENCE: 1
+      PERSIST_S3: 1
     volumes:
-      - localstack_data:/var/lib/localstack
+      - localstack_data:/persisted-data
     networks:
       - airflow
     healthcheck:
