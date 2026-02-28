@@ -1,0 +1,16 @@
+airflow:
+  connections:
+    - conn_id: cdw-dev
+      conn_type: postgres
+      conn_host: cdw-postgres   # Docker service name, reachable by Airflow containers
+      conn_schema: postgres
+      conn_login: postgres
+      conn_password: postgres
+      conn_port: 5432           # Internal Docker port
+  pools:
+    - pool_name:
+      pool_slot:
+      pool_description:
+  variables:
+    - variable_name:
+      variable_value:
