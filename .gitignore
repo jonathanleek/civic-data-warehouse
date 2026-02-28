@@ -1,4 +1,4 @@
-.git
+﻿.git
 *.env
 airflow_settings.yaml
 astro
@@ -7,3 +7,6 @@ temp
 __pycache__
 .idea/
 .DS_Store
+dbt/target
+dbt/dbt_packages
+dbt/logs

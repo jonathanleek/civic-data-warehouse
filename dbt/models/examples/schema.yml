@@ -1,0 +1,16 @@
+﻿version: 2
+
+sources:
+  - name: staging
+    schema: staging
+    tables:
+      - name: parcel
+
+models:
+  - name: stg__parcel
+    description: "Example staging model; adjust for your real staging tables."
+    columns:
+      - name: parcel_id
+        description: "REDB identifier (example)."
+  - name: current__parcel
+    description: "Example prod model built from stg__parcel."

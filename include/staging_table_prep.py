@@ -157,7 +157,7 @@ def create_table_in_postgres(filename, postgres_conn):
     # Define columns for table
     for column in columns:
         cleaned_column = clean_column_name(column)
-        sqlQueryCreate += cleaned_column + " VARCHAR(64),\n"
+        sqlQueryCreate += cleaned_column + " VARCHAR(255),\n"
 
     sqlQueryCreate = sqlQueryCreate[:-2]
     sqlQueryCreate += ");"
@@ -198,17 +198,15 @@ def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
     logger.info("Attempting to populate " + key)
     hook = S3Hook(aws_conn_id=s3_conn_id)
     obj = hook.read_key(bucket_name=bucket, key=key)
-    df = pd.read_csv(StringIO(obj))
+    df = pd.read_csv(StringIO(obj), dtype=str)
     for column in df.columns:
         if df[column].dtype == object:
-            df[column] = df[column].replace("'", "''", inplace=True)
+            df[column] = df[column].str.replace("'", "''", regex=False)
     df.replace(np.nan, "None", inplace=True)
-    records = df.to_records(index=True)
 
     # Read table from S3 bucket
     filename = "/tmp/" + key
     tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-    columns = list(df.columns)
 
     # Build SQL code to insert data into table
     sqlQueryInsert = SQL_INSERT_STATEMENT_FROM_DATAFRAME(df, tablename)

@@ -4,4 +4,5 @@ apache-airflow-providers-postgres
 apache-airflow-providers-common-sql
 apache-airflow-providers-standard
 apache-airflow-providers-smtp
+dbt-postgres
 xlrd==2.0.2

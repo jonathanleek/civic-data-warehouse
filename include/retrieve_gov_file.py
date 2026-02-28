@@ -86,7 +86,7 @@ def unpack_zip(path_to_zip, extract_path, logger):
                 unpack_zip(path_to_zip=inner_zipfile, extract_path=extract_path, logger=logger)
                 os.remove(inner_zipfile)
                 logger.info(f"{name} successfully unzipped")
-        except:
+        except Exception:
             logger.error(f"{name} is not a .zip - full path : {os.path.join(extract_path, name)}")
             pass
 

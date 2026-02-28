@@ -54,3 +54,14 @@ Contact
 =======
 
 The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support team: https://support.astronomer.io/
+
+DBT
+===
+
+This repo includes a dbt project in `dbt/` that reads from the `staging` schema and builds production tables in `current`.
+
+Quick start (PowerShell):
+1. `pip install dbt-postgres`
+2. `$env:DBT_PROFILES_DIR = "dbt"`
+3. `dbt debug --project-dir dbt`
+4. `dbt run --project-dir dbt`

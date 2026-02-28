@@ -1,0 +1,13 @@
+﻿civic_data_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_PORT', '5433') | int }}"
+      user: "{{ env_var('DBT_USER', 'cdw_user') }}"
+      pass: "{{ env_var('DBT_PASS', 'cdw_password') }}"
+      dbname: "{{ env_var('DBT_DBNAME', 'cdw') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'current') }}"
+      threads: 4
+      keepalives_idle: 0
