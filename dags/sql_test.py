@@ -8,6 +8,5 @@ with DAG(
     truncate_staging = SQLExecuteQueryOperator(
         task_id="sql_test",
         conn_id="cdw-dev",
-        sql="SELECT * FROM CDW.Staging.test_table",
-        params={"schema": "staging"},
+        sql="SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('staging', 'current', 'history')",
     )
