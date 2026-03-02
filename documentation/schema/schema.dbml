@@ -1,31 +1,31 @@
 // Entities
-Table parcel {
+Table parcel [headercolor: #3498db] {
   parcel_id int [pk, note: 'REDB identifier, not municapal identifier (handle)']
-  county varchar
-  owner_id int [ref: - legal_entity.legal_entity_id]
-  ward int
-  neighborhood varchar
-  zip_code int
+  county_id int [ref: > county.county_id]
+  owner_id int [ref: > legal_entity.legal_entity_id]
+  ward_id int [ref: > ward.ward_id]
+  neighborhood_id int [ref: > neighborhood.neighborhood_id]
+  zip_code varchar
   census_block int
   frontage int
-  zoning_class_id int [ref: - zoning_class.zoning_class_id]
+  zoning_class_id int [ref: > zoning_class.zoning_class_id]
 }
 
-Table building {
+Table building [headercolor: #3498db] {
   building_id int [pk]
   parcel_id int [ref: > parcel.parcel_id]
-  owner_id int [ref: - legal_entity.legal_entity_id]
-  use_type_id int [ref: - use_type.use_type_id]
+  owner_id int [ref: > legal_entity.legal_entity_id]
+  use_type_id int [ref: > use_type.use_type_id]
   sq_footage int
   year_built int
 }
 
-Table unit {
+Table unit [headercolor: #3498db] {
   unit_id int  [pk]
   building_id int [ref: > building.building_id]
-  owner_id int [ref: - legal_entity.legal_entity_id]
-  use_type_id int [ref: - use_type.use_type_id]
-  address_id int [ref: - address.address_id]
+  owner_id int [ref: > legal_entity.legal_entity_id]
+  use_type_id int [ref: > use_type.use_type_id]
+  address_id int [ref: > address.address_id]
   ground_floor bool
   stories float
   windows_ac int
@@ -35,27 +35,30 @@ Table unit {
   garage int
 }
 
-Table legal_entity {
+Table legal_entity [headercolor: #3498db] {
   legal_entity_id int [pk]
   name varchar
-  address_id int [ref: - address.address_id]
+  address_id int [ref: > address.address_id]
 }
 
-Table address {
+Table address [headercolor: #3498db] {
   address_id int [pk]
-  street_number int
+  street_number varchar
   street_name_prefix varchar
   street_name varchar
   street_name_suffix varchar
   secondary_designator varchar
   city varchar
   state varchar
-  zip int
+  zip varchar
 }
 
 // Operations
-Table permit {
+Table permit [headercolor: #e67e22] {
   permit_id int  [pk]
+  parcel_id int [ref: > parcel.parcel_id]
+  building_id int [ref: > building.building_id]
+  unit_id int [ref: > unit.unit_id]
   permit_type_id int [ref: > permit_type.permit_type_id]
   application_date date
   issue_date date
@@ -67,89 +70,136 @@ Table permit {
   contractor_id int [ref: - legal_entity.legal_entity_id]
 }
 
-Table service {
+Table service [headercolor: #e67e22] {
   service_id int [pk]
-  parcel_id int [ref: - parcel.parcel_id]
-  building_id int [ref: - building.building_id]
-  unit_id int [ref: - unit.unit_id]
-  owner_id int [ref: - legal_entity.legal_entity_id]
-  division_id int [ref: - division.division_id]
+  parcel_id int [ref: > parcel.parcel_id]
+  building_id int [ref: > building.building_id]
+  unit_id int [ref: > unit.unit_id]
+  owner_id int [ref: > legal_entity.legal_entity_id]
+  division_id int [ref: > division.division_id]
   service_date date
-  service_type_id int [ref: - service_type.service_type_id]
+  service_type_id int [ref: > service_type.service_type_id]
   fee float8
 }
 
-Table condemnation {
+Table condemnation [headercolor: #e67e22] {
   condemnation_id int [pk]
-  inspection_id int [ref: - inspection.inspection_id]
+  inspection_id int [ref: > inspection.inspection_id]
   letter_date date
-  condemnation_type varchar
-  status varchar
+  condemnation_type_id int [ref: > condemnation_type.condemnation_type_id]
+  condemnation_status_id int [ref: > condemnation_status.condemnation_status_id]
 }
 
-Table inspection {
+Table inspection [headercolor: #e67e22] {
   inspection_id int [pk]
-  building_id int [ref: - building.building_id]
+  building_id int [ref: > building.building_id]
   inspection_date date
   completion_date date
-  inspection_type_id int [ref: - inspection_type.inspection_type_id]
+  inspection_type_id int [ref: > inspection_type.inspection_type_id]
   number_of_violations int
 }
 
-Table assessment {
+Table assessment [headercolor: #e67e22] {
   assessment_id int [pk]
-  parcel_id int [ref: - parcel.parcel_id]
+  parcel_id int [ref: > parcel.parcel_id]
   assessment_date date
   assessment_amount float
   land_value float
   improvement_value float
 }
 
-Table tax_delinquency {
+Table tax_delinquency [headercolor: #e67e22] {
   tax_delinquency_id int [pk]
-  legal_entity_id int [ref: - legal_entity.legal_entity_id]
+  parcel_id int [ref: > parcel.parcel_id]
+  legal_entity_id int [ref: > legal_entity.legal_entity_id]
   last_paid_year int
   amount_delinquent float
 }
 
+Table sale [headercolor: #e67e22] {
+  sale_id int [pk]
+  parcel_id int [ref: > parcel.parcel_id]
+  sale_date date
+  sale_price float
+  buyer_id int [ref: > legal_entity.legal_entity_id]
+  seller_id int [ref: > legal_entity.legal_entity_id]
+  instrument_type varchar
+  deed_book varchar
+  deed_page varchar
+}
+
+Table violation [headercolor: #e67e22] {
+  violation_id int [pk]
+  inspection_id int [ref: > inspection.inspection_id]
+  code_cited varchar
+  severity varchar
+  status varchar
+  compliance_date date
+}
+
 // Lookups
-Table municipality {
+Table county [headercolor: #9b59b6] {
+  county_id int [pk]
+  county varchar
+}
+
+Table ward [headercolor: #9b59b6] {
+  ward_id int [pk]
+  ward int
+}
+
+Table neighborhood [headercolor: #9b59b6] {
+  neighborhood_id int [pk]
+  neighborhood varchar
+}
+
+Table municipality [headercolor: #9b59b6] {
   municipality_id int [pk]
   municipality varchar
 }
 
-Table division {
+Table division [headercolor: #9b59b6] {
   division_id int [pk]
   division varchar
 }
 
-Table service_type {
+Table service_type [headercolor: #9b59b6] {
   service_type_id int [pk]
   service_type varchar
 }
 
-Table zoning_class {
+Table zoning_class [headercolor: #9b59b6] {
   zoning_class_id int [pk]
   zoning_class varchar
 }
 
-Table municipal_parcel_id_mapping {
-  parcel_id int [pk]
+Table municipal_parcel_id_mapping [headercolor: #9b59b6] {
+  parcel_id int [pk, ref: > parcel.parcel_id]
   municpal_parcel_id varchar
-  municipality_id int
+  municipality_id int [ref: > municipality.municipality_id]
 }
 
-Table use_type {
+Table use_type [headercolor: #9b59b6] {
   use_type_id int [pk]
-  use_type int
+  use_type varchar
 }
 
-Table permit_type {
+Table permit_type [headercolor: #9b59b6] {
   permit_type_id int [pk]
   permit_type varchar
 }
 
-Table inspection_type {
+Table inspection_type [headercolor: #9b59b6] {
   inspection_type_id int [pk]
   inspection_type varchar
+}
+
+Table condemnation_type [headercolor: #9b59b6] {
+  condemnation_type_id int [pk]
+  condemnation_type varchar
+}
+
+Table condemnation_status [headercolor: #9b59b6] {
+  condemnation_status_id int [pk]
+  condemnation_status varchar
 }
