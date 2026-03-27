@@ -126,53 +126,230 @@ Produces **98,748 residential building records**. Confirmed: `BldgAll` has exact
 | `O` | 3,215 | Outbuildings (not in `BldgCom` or `BldgRes`) |
 | (blank) | 377,715 | Parcels without buildings / placeholder rows |
 
-Unfinished Logic — Unit Creation
----------------------------------
+Q7 — Unit Creation
+-------------------
 
-The legacy diagram marks this section as **"Unfinished Logic"**, and it was never fully implemented. The intended flow was:
+Q7 completes the spine by creating `current.unit` records for every building produced by Q6. The CDW schema requires that **every building has at least one unit** — even single-use structures. Units are created via three paths, each targeting a distinct building type. Together, these paths are exhaustive: every Q6 building receives exactly one path's treatment, and any record not captured is an error.
 
-### Path 1: Commercial building sections → UNIT records
+### Target Table: `current.unit`
+
+| Column | Type | Source | Notes |
+|--------|------|--------|-------|
+| `unit_id` | int PK | Generated | Auto-incrementing surrogate key |
+| `building_id` | int FK | Q6 output | FK to `current.building`; resolved via composite key join |
+| `owner_id` | int FK | Q2 output | FK to `current.legal_entity`; inherited from the parcel's owner |
+| `use_type_id` | int FK | `BldgUseCode` | FK to `current.use_type`; derived from `BldgAll.BldgUseCode` (`R`, `C`, `O`) |
+| `address_id` | int FK | Q1 output | FK to `current.address`; linked via `PrclAddr` (see Address Linkage below) |
+| `ground_floor` | bool | Derived | `TRUE` if unit includes ground level (see derivation rules per path) |
+| `stories` | float | Source-dependent | Residential: `ResStoriesCode`; Commercial: `LevelTo - LevelFrom + 1`; Outbuilding: `NULL` |
+| `windows_ac` | int | Source-dependent | Count of window AC units; `NULL` for outbuildings |
+| `central_ac` | int | Source-dependent | Central AC indicator; `NULL` for outbuildings |
+| `full_bath` | int | `BldgRes` only | `NULL` for commercial and outbuilding units |
+| `half_bath` | int | `BldgRes` only | `NULL` for commercial and outbuilding units |
+| `garage` | int | `BldgRes` only | `NULL` for commercial and outbuilding units |
+
+### Path 1: Residential Units (~98,748 records)
+
+**One unit per `BldgRes` record.** Every residential building from Q6 Source 3 gets exactly one unit.
+
 ```
-IF Parcel-11 & BldgNum listed in BldgSect table
-    → Create REDB UNIT Record (building section)
+SELECT
+    nextval('unit_id_seq')          AS unit_id,
+    b.building_id                   AS building_id,
+    p.owner_id                      AS owner_id,
+    ut.use_type_id                  AS use_type_id,   -- where BldgUseCode = 'R'
+    addr.address_id                 AS address_id,     -- see Address Linkage
+    TRUE                            AS ground_floor,   -- single-unit residential always includes ground
+    r.ResStoriesCode                AS stories,
+    r.AirCondWindow                 AS windows_ac,
+    r.AirCondCentral                AS central_ac,
+    r.FullBaths                     AS full_bath,
+    r.HalfBaths                     AS half_bath,
+    COALESCE(r.NbrOfGarages, 0)
+        + CASE WHEN r.Garage1 IS NOT NULL AND r.Garage1 != '' THEN 1 ELSE 0 END
+        + CASE WHEN r.Garage2 IS NOT NULL AND r.Garage2 != '' THEN 1 ELSE 0 END
+                                    AS garage
+FROM BldgRes r
+INNER JOIN current.building b
+    ON (r.CityBlock, r.Parcel, r.OwnerCode, r.BldgNum)
+     = (b.city_block, b.parcel, b.owner_code, b.bldg_num)
 ```
-`BldgSect` has **12,884 rows** with section-level detail for commercial buildings: floor levels, area, heating, AC, elevator, fire protection, etc. Each section would become a unit record.
 
-### Path 2: Non-building parcels → UNIT records
+**Field mapping:**
+
+| Source (`BldgRes`) | Target (`current.unit`) | Transform |
+|--------------------|------------------------|-----------|
+| `FullBaths` (Byte) | `full_bath` | Direct |
+| `HalfBaths` (Byte) | `half_bath` | Direct |
+| `AirCondCentral` (Boolean) | `central_ac` | Cast bool → int (0/1) |
+| `AirCondWindow` (Boolean) | `windows_ac` | Cast bool → int (0/1) |
+| `Garage1`, `Garage2`, `NbrOfGarages` | `garage` | `NbrOfGarages + (1 if Garage1 non-empty) + (1 if Garage2 non-empty)` |
+| `ResStoriesCode` (Byte) | `stories` | Direct (code represents story count as float, e.g. 1.5) |
+| — | `ground_floor` | Always `TRUE` (single-unit residential) |
+
+### Path 2: Commercial Units (~12,884 records)
+
+**One unit per `BldgSect` record** (not per `BldgCom`). A single commercial building may have multiple sections spanning different floor ranges, each becoming its own unit. This captures the section-level granularity that `BldgCom` alone does not provide.
+
 ```
-IF Parcel-11 NOT listed in BldgCom or BldgRes tables
-    → Create REDB UNIT Record (all others, e.g. billboard)
+SELECT
+    nextval('unit_id_seq')          AS unit_id,
+    b.building_id                   AS building_id,
+    p.owner_id                      AS owner_id,
+    ut.use_type_id                  AS use_type_id,   -- where BldgUseCode = 'C'
+    addr.address_id                 AS address_id,     -- see Address Linkage
+    (s.LevelFrom = 1)              AS ground_floor,   -- TRUE if section starts at level 1
+    (s.LevelTo - s.LevelFrom + 1)  AS stories,
+    s.AirCondWindow                 AS windows_ac,
+    s.AirCondCentral                AS central_ac,
+    NULL                            AS full_bath,
+    NULL                            AS half_bath,
+    NULL                            AS garage
+FROM BldgSect s
+INNER JOIN current.building b
+    ON (s.CityBlock, s.Parcel, s.OwnerCode, s.BldgNum)
+     = (b.city_block, b.parcel, b.owner_code, b.bldg_num)
 ```
-This handles the **3,215 outbuilding** records in `BldgAll` (`BldgUseCode = 'O'`), plus potentially other non-standard structures.
 
-### Path 3: Filter already-handled parcels
-A `NOT LEFT JOIN on #Com&#Res` step removes parcels already handled by the commercial and residential paths, preventing duplicate unit creation.
+**Field mapping:**
 
-### Fallback: ERROR
-Any records not captured by Paths 1-3 fall through to an **ERROR** state. The diagram notes: *"Should Capture all Records"* — indicating the logic was designed to be exhaustive but was never completed.
+| Source (`BldgSect`) | Target (`current.unit`) | Transform |
+|---------------------|------------------------|-----------|
+| `LevelFrom` (Byte) | `ground_floor` | `TRUE` if `LevelFrom = 1` |
+| `LevelFrom`, `LevelTo` (Byte) | `stories` | `LevelTo - LevelFrom + 1` |
+| `AirCondCentral` (Boolean) | `central_ac` | Cast bool → int (0/1) |
+| `AirCondWindow` (Boolean) | `windows_ac` | Cast bool → int (0/1) |
+| `Area` (Long) | — | Available for downstream analytics but no direct `current.unit` column |
+| — | `full_bath`, `half_bath`, `garage` | `NULL` (not applicable to commercial sections) |
 
-### What's Missing for Unit Creation
+**Edge case — Commercial buildings with no `BldgSect` records:** If a `BldgCom` building has no matching rows in `BldgSect`, it would receive zero units, violating the "every building has at least one unit" constraint. To handle this:
 
-To complete the unit creation logic, the following transformations are needed:
+```
+INSERT INTO current.unit (building_id, owner_id, use_type_id, address_id, ground_floor, stories, ...)
+SELECT
+    b.building_id, p.owner_id, ut.use_type_id, addr.address_id,
+    TRUE,                           -- assume ground floor
+    c.NbrOfStories,                 -- fall back to BldgCom.NbrOfStories
+    NULL, NULL, NULL, NULL, NULL    -- no section-level detail available
+FROM BldgCom c
+INNER JOIN current.building b
+    ON (c.CityBlock, c.Parcel, c.OwnerCode, c.BldgNum)
+     = (b.city_block, b.parcel, b.owner_code, b.bldg_num)
+LEFT JOIN BldgSect s
+    ON (c.CityBlock, c.Parcel, c.OwnerCode, c.BldgNum)
+     = (s.CityBlock, s.Parcel, s.OwnerCode, s.BldgNum)
+WHERE s.SectNum IS NULL             -- no sections exist for this building
+```
 
-1. **Residential units** — Map `BldgRes` fields directly to `current.unit`:
-   - `FullBaths` → `full_bath`
-   - `HalfBaths` → `half_bath`
-   - `AirCondCentral` → `central_ac`
-   - `AirCondWindow` → `windows_ac`
-   - `Garage1`/`Garage2`/`NbrOfGarages` → `garage`
-   - `ResStoriesCode` → `stories`
-   - Every residential building must have at least one unit (per schema design)
+### Path 3: Outbuilding / Synthetic Units (~3,812 records)
 
-2. **Commercial units** — Map `BldgSect` rows to `current.unit`:
-   - Each section becomes a unit record
-   - `Area` → sq footage
-   - `AirCondCentral`, `AirCondWindow` → AC fields
-   - `LevelFrom`/`LevelTo` → floor/story information
+**One unit per building** for two sub-populations that lack detail records in `BldgCom` or `BldgRes`:
 
-3. **Outbuildings** — Create minimal unit records for `BldgAll` records with `BldgUseCode = 'O'`
+**3a. Outbuildings (~3,215 records):** Buildings from `BldgAll` where `BldgUseCode = 'O'`. These are structures like detached garages, sheds, and billboards that have no corresponding row in `BldgCom` or `BldgRes`.
 
-4. **Address linkage** — Connect units to `PrclAddr` records via the parcel key to populate `address_id`
+**3b. Synthetic buildings (~597 records):** Buildings created by Q6 Source 1 (`Prcl WHERE Parcel > 8000`). These parcels have structures but no typed building records.
+
+```
+-- 3a: Outbuildings
+SELECT
+    nextval('unit_id_seq')          AS unit_id,
+    b.building_id                   AS building_id,
+    p.owner_id                      AS owner_id,
+    ut.use_type_id                  AS use_type_id,   -- where BldgUseCode = 'O'
+    addr.address_id                 AS address_id,
+    NULL                            AS ground_floor,
+    NULL                            AS stories,
+    NULL                            AS windows_ac,
+    NULL                            AS central_ac,
+    NULL                            AS full_bath,
+    NULL                            AS half_bath,
+    NULL                            AS garage
+FROM BldgAll a
+INNER JOIN current.building b
+    ON (a.CityBlock, a.Parcel, a.OwnerCode, a.BldgNum)
+     = (b.city_block, b.parcel, b.owner_code, b.bldg_num)
+WHERE a.BldgUseCode = 'O'
+
+UNION ALL
+
+-- 3b: Synthetic buildings (Parcel > 8000)
+SELECT
+    nextval('unit_id_seq')          AS unit_id,
+    b.building_id                   AS building_id,
+    p.owner_id                      AS owner_id,
+    NULL                            AS use_type_id,   -- no BldgUseCode available
+    addr.address_id                 AS address_id,
+    NULL                            AS ground_floor,
+    NULL                            AS stories,
+    NULL                            AS windows_ac,
+    NULL                            AS central_ac,
+    NULL                            AS full_bath,
+    NULL                            AS half_bath,
+    NULL                            AS garage
+FROM Prcl pr
+INNER JOIN current.building b
+    ON (pr.CityBlock, pr.Parcel, pr.OwnerCode, '1')
+     = (b.city_block, b.parcel, b.owner_code, b.bldg_num)
+WHERE pr.Parcel > 8000
+```
+
+These are minimal unit records — mostly NULLs — that exist solely to satisfy the "every building has at least one unit" constraint.
+
+### Address Linkage
+
+Units are linked to addresses via the `PrclAddr` table (~156,618 rows), which connects to parcels through the composite key `(CityBlock, Parcel, OwnerCode)`.
+
+```
+LEFT JOIN PrclAddr pa
+    ON (source.CityBlock, source.Parcel, source.OwnerCode)
+     = (pa.CityBlock, pa.Parcel, pa.OwnerCode)
+LEFT JOIN current.address addr
+    ON addr.address_id = Q1_lookup(pa.*)   -- resolved via Q1-generated address IDs
+```
+
+**Multi-address parcels:** When a parcel has multiple `PrclAddr` records (e.g., a corner lot with two street addresses, or a multi-unit building), each unit receives the address that best matches its context:
+- **Single-unit buildings** (residential, outbuilding, synthetic): Use the *primary* `PrclAddr` record (lowest `AddrNum` or first record by sort order). If only one address exists, it is used directly.
+- **Multi-unit buildings** (commercial sections): Where possible, match `BldgSect` records to specific `PrclAddr` entries. When no deterministic match exists, all units on the building share the primary address.
+
+The `LEFT JOIN` ensures that units are still created even if no `PrclAddr` record exists — `address_id` will be `NULL` in those cases, rather than dropping the unit entirely.
+
+### Exhaustiveness Check
+
+The three paths must collectively cover every building from Q6 with **no gaps and no duplicates**.
+
+| Path | Source | Expected Count | Join Key |
+|------|--------|---------------|----------|
+| Path 1 — Residential | `BldgRes` | ~98,748 | `(CB, Parcel, OC, BldgNum)` |
+| Path 2 — Commercial (sections) | `BldgSect` | ~12,884 | `(CB, Parcel, OC, BldgNum, SectNum)` |
+| Path 2 — Commercial (fallback) | `BldgCom` w/o sections | ~0 (verify) | `(CB, Parcel, OC, BldgNum)` |
+| Path 3a — Outbuildings | `BldgAll` where `O` | ~3,215 | `(CB, Parcel, OC, BldgNum)` |
+| Path 3b — Synthetics | `Prcl` where `Parcel > 8000` | ~597 | `(CB, Parcel, OC, '1')` |
+| **Total units** | | **~115,444** | |
+
+**Verification against Q6 buildings:**
+- Q6 Source 1 (synthetics): 597 buildings → 597 units (Path 3b) ✓
+- Q6 Source 2 (commercial): 11,762 buildings → 12,884 section-units + fallback units (Path 2) ✓
+- Q6 Source 3 (residential): 98,748 buildings → 98,748 units (Path 1) ✓
+- Outbuildings: 3,215 `BldgAll` records with `BldgUseCode = 'O'` → 3,215 units (Path 3a) ✓
+
+**Note:** Commercial buildings produce *more* units than buildings (12,884 sections across 11,762 buildings) because some buildings have multiple sections. The total unit count exceeds the total building count, which is expected.
+
+**Duplicate prevention:** The three paths are mutually exclusive by construction:
+- Path 1 joins on `BldgRes` (only `BldgUseCode = 'R'` buildings)
+- Path 2 joins on `BldgSect`/`BldgCom` (only `BldgUseCode = 'C'` buildings)
+- Path 3a filters `BldgAll` to `BldgUseCode = 'O'` (disjoint from `R` and `C`)
+- Path 3b filters `Prcl` to `Parcel > 8000` (these parcels lack `BldgCom`/`BldgRes` records by definition)
+
+**Error handling:** After all three paths execute, run a validation query to find any Q6 building with zero units:
+
+```
+SELECT b.building_id
+FROM current.building b
+LEFT JOIN current.unit u ON b.building_id = u.building_id
+WHERE u.unit_id IS NULL
+```
+
+Any rows returned indicate a gap in the logic — these should be flagged as errors for manual review, matching the original diagram's "ERROR" fallback state. The intent is **zero rows** from this query.
 
 Source Column Reference
 -----------------------
