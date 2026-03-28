@@ -5,6 +5,30 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
 from airflow.utils.log import logging_mixin
 
+
+def _csv_passes_strict_parse(path: str, logger) -> bool:
+    """
+    Return True if pandas can read the file as CSV without ragged rows or parse errors.
+    Used before uploading to S3 so malformed exports never enter the lake.
+    """
+    try:
+        pandas.read_csv(
+            path,
+            dtype=str,
+            on_bad_lines="error",
+            encoding="utf-8",
+            encoding_errors="replace",
+        )
+        return True
+    except Exception as e:
+        logger.warning(
+            "CSV validation failed for %s (%s); file will not be uploaded.",
+            path,
+            e,
+        )
+        return False
+
+
 def retrieve_gov_file(filename, file_url, bucket, s3_conn_id, task_id, base_prep_dir):
     """
     Downloads a single file to a temporary directory, recursively unzips it, converts .mdb files if needed, 
@@ -93,11 +117,18 @@ def unpack_zip(path_to_zip, extract_path, logger):
 
 def upload_to_s3(bucket, s3_conn_id, logger, file, prep_dir):
     """
-    Uploads a target file to s3
+    Uploads a target file to s3. CSV files must pass strict pandas parsing or they are discarded.
     :return: None
     """
     key = file.replace(" ", "")
     source_file = os.path.join(prep_dir, file)
+    if file.lower().endswith(".csv") and not _csv_passes_strict_parse(source_file, logger):
+        try:
+            os.remove(source_file)
+        except OSError as e:
+            logger.warning("Could not remove rejected file %s: %s", source_file, e)
+        return
+
     logger.info(f"Moving {source_file} into s3 bucket {bucket}")
     s3_hook = S3Hook(aws_conn_id=s3_conn_id)
     s3_hook.load_file(filename=source_file, key=key, bucket_name=bucket, replace=True)
@@ -107,16 +138,11 @@ def upload_to_s3(bucket, s3_conn_id, logger, file, prep_dir):
 
 def export_txt_file(bucket, s3_conn_id, logger, file, prep_dir):
     """
-    Test the file to see if it's a valid .csv. If so, rename it and upload it.
+    Rename .txt to .csv and upload. Strict CSV validation runs in upload_to_s3; invalid files are removed.
     :return: None
     """
     logger.info(f"{file} identified as .txt")
     prepped_file = os.path.join(prep_dir, file)
-    try:
-        pandas.read_csv(prepped_file, dtype=str)
-    except Exception:
-        logger.exception(f"file {prepped_file} does not appear to be a csv")
-        raise
     csv_filename = os.path.splitext(file)[0] + ".csv"
     full_csv_filename = os.path.join(prep_dir, csv_filename)
     shutil.move(prepped_file, full_csv_filename)
