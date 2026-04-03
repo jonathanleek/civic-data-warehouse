@@ -34,10 +34,10 @@ with DAG(
     doc_md=doc_md_DAG,
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
-    truncate_staging = SQLExecuteQueryOperator(
-        task_id="truncate_staging",
+    drop_and_create = SQLExecuteQueryOperator(
+        task_id="drop_and_create_staging",
         conn_id="cdw-dev",
-        sql=f"truncate_schema.sql",
+        sql=f"drop_and_create_staging.sql",
         params={"schema": "staging"},
     )
 
@@ -58,10 +58,6 @@ with DAG(
         op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
     ).expand(op_kwargs=prepare_list.output)
 
-    # TODO 'forestry_maintenance_properties' is failing to populate.
-    # column "category" of relation "forestry_maintenance_properties" does not exist
-    # column names for forestry_maintenance_properties are in "" for some reason? Not seeing that in other tables
-
     populate_staging_tables = PythonOperator.partial(
         task_id="populate_staging_tables",
         python_callable=populate_staging_table,
@@ -70,7 +66,7 @@ with DAG(
     ).expand(op_kwargs=prepare_list.output)
 
 (
-    truncate_staging
+    drop_and_create
     >> list_s3_objects
     >> prepare_list
     >> create_staging_tables
