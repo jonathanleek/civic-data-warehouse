@@ -87,10 +87,8 @@ def execute_query(query, conn_id, logger: Logger):
     hook.run(sql=query)
 
 
-def bulk_load_csv(bulkCopySql, filename, conn_id, logger: Logger):
-    hook = PostgresHook(
-        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
-    )
+def bulk_load_csv(bulkCopySql, filename, conn_id, logger:Logger):
+    hook = PostgresHook(postgres_conn_id=conn_id, log_sql=(logger.level==logging.DEBUG))
     hook.copy_expert(sql=bulkCopySql, filename=filename)
 
 
