@@ -181,7 +181,7 @@ def create_staging_table(bucket, s3_conn_id, postgres_conn_id, key):
 
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
-    return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV"
+    return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV HEADER"
 
 
 def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
