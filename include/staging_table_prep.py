@@ -5,20 +5,79 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.log import logging_mixin
 import pandas as pd
-from io import StringIO
 import re
 
 
-def download_from_s3(key: str, bucket_name: str, s3_conn_id: str):
+staging_download_dest = "/tmp/stage/"
+
+
+def ensure_staging_directory():
     logger = logging_mixin.LoggingMixin().logger()
-    download_dest = "/tmp/"
-    hook = S3Hook(aws_conn_id=s3_conn_id)
-    filename = hook.download_file(
-        key=key, bucket_name=bucket_name, local_path=download_dest
-    )
-    logger.info(filename + " downloaded")
-    os.rename(src=filename, dst=download_dest + key)
-    logger.info(filename + " renamed to " + download_dest + key)
+
+    logger.info(f"Preparing staging directory '{staging_download_dest}'")
+    
+    if os.path.exists(staging_download_dest):
+        logger.info(f"clearing all files in {staging_download_dest}")
+        for root, dirs, files in os.walk(staging_download_dest):
+            for file in files:
+                file_to_remove = os.path.join(root, file)
+                logger.debug(f"removing file {file_to_remove}")
+                os.remove(file_to_remove)
+        for root, dirs, files in os.walk(staging_download_dest):
+            for dir in dirs:
+                subdir_to_remove = os.path.join(root, dir)
+                logger.debug(f"removing subdirectory {subdir_to_remove}")
+                os.rmdir(subdir_to_remove)
+        logger.info("tmp directory cleared")
+        
+    if not os.path.exists(staging_download_dest):
+        logger.info(f"Creating directory {staging_download_dest}")
+        os.makedirs(staging_download_dest)
+
+
+def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
+    logger = logging_mixin.LoggingMixin().logger()
+
+    logger.info(f"Using tmp directory '{staging_download_dest}'")
+    dest_file = os.path.join(staging_download_dest, key)
+    logger.info(f"Downloading file '{dest_file}'")
+    
+    # Using S3Hook.download_file() seems to be async for me, but I'm 
+    #  unable to see what and how. All I can see is that I get occasional
+    #  zero-byte files. So, right now, I'm using the underlying
+    #  connection's download_file() call, which should be synchronous and
+    #  therefore fully block until the file download completes.
+    S3Hook(aws_conn_id=s3_conn_id) \
+        .get_conn() \
+        .download_file(bucket_name, key, dest_file)
+
+    # If we get another download error, throw here to block all further
+    #  processing.
+    if os.path.getsize(dest_file) == 0:
+        raise Exception(f"Downloaded file {dest_file} is zero bytes")
+
+    logger.info(f"{dest_file} downloaded")
+    
+
+def create_staging_table(postgres_conn_id, key):
+    logger = logging_mixin.LoggingMixin().logger()
+    filename = staging_download_dest + key
+    logger.info("Attempting to create table for " + filename)
+    create_table_in_postgres(filename=filename, postgres_conn=postgres_conn_id)
+
+
+def populate_staging_table(postgres_conn, key):
+    logger = logging_mixin.LoggingMixin().logger()
+
+    filename = staging_download_dest + key
+    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
+    logger.info(f"Attempting to import file {filename} into table {tablename}")
+
+    df = pd.read_csv(filename, dtype=str)
+
+    sqlBulkCopy = BULK_COPY_STATEMENT_FROM_DATAFRAME(df, tablename)
+    logger.debug(sqlBulkCopy)
+    bulk_load_csv(sqlBulkCopy, filename, postgres_conn, logger)
 
 
 def execute_query(query, conn_id, logger:Logger):
@@ -146,8 +205,13 @@ def clean_column_name(column_name):
 
 def create_table_in_postgres(filename, postgres_conn):
     logger = logging_mixin.LoggingMixin().logger()
-    tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-    df = pd.read_csv(filename, dtype=str)
+    
+    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
+
+    df = pd.read_csv(
+            filename,
+            dtype=str
+        )
 
     columns = [clean_column_name(col) for col in df.columns]
     logger.info("List of columns:")
@@ -155,14 +219,9 @@ def create_table_in_postgres(filename, postgres_conn):
         logger.info(f"column index {col_index} is '{column}'")
 
     # Build SQL code to drop table if exists and create table
-    sqlQueryCreate = ""
-    sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " (\n"
-
-    # Define columns for table
-    for column in df.columns:
-        sqlQueryCreate += clean_column_name(column) + " VARCHAR,\n"
-
-    sqlQueryCreate = sqlQueryCreate[:-2]
+    sqlQueryCreate = "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " ("
+    columns = [col + " VARCHAR" for col in columns]
+    sqlQueryCreate += ", ".join(columns)
     sqlQueryCreate += ");"
     logger.debug(sqlQueryCreate)
 
@@ -170,34 +229,8 @@ def create_table_in_postgres(filename, postgres_conn):
     execute_query(sqlQueryCreate, postgres_conn, logger)
 
 
-def create_staging_table(bucket, s3_conn_id, postgres_conn_id, key):
-    logger = logging_mixin.LoggingMixin().logger()
-    download_from_s3(key=key, bucket_name=bucket, s3_conn_id=s3_conn_id)
-    logger.info("Downloaded " + key)
-    logger.info("Attempting to create table for " + key)
-    create_table_in_postgres(filename="/tmp/" + key, postgres_conn=postgres_conn_id)
-
-
 
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
     return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV HEADER"
-
-
-def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
-    logger = logging_mixin.LoggingMixin().logger()
-    # Import table from S3 bucket to a pandas dataframe and convert to an array
-    logger.info("Attempting to populate " + key)
-    hook = S3Hook(aws_conn_id=s3_conn_id)
-    obj = hook.read_key(bucket_name=bucket, key=key)
-    df = pd.read_csv(StringIO(obj))
-
-    # Read table from S3 bucket
-    filename = "/tmp/" + key
-    tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-    columns = list(df.columns)
-
-    sqlBulkCopy = BULK_COPY_STATEMENT_FROM_DATAFRAME(df, tablename)
-    logger.debug(sqlBulkCopy)
-    bulk_load_csv(sqlBulkCopy, filename, postgres_conn, logger)
 
