@@ -66,11 +66,7 @@ def populate_staging_table(postgres_conn, key):
     logger = logging_mixin.LoggingMixin().logger()
 
     filename = staging_download_dest + key
-    tablename = (
-        filename.replace(staging_download_dest, "")
-        .replace(".csv", "")
-        .replace("-", "_")
-    )
+    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
     logger.info(f"Attempting to import file {filename} into table {tablename}")
 
     df = pd.read_csv(filename, dtype=str)
@@ -207,14 +203,13 @@ def clean_column_name(column_name):
 
 def create_table_in_postgres(filename, postgres_conn):
     logger = logging_mixin.LoggingMixin().logger()
+    
+    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
 
-    tablename = (
-        filename.replace(staging_download_dest, "")
-        .replace(".csv", "")
-        .replace("-", "_")
-    )
-
-    df = pd.read_csv(filename, dtype=str)
+    df = pd.read_csv(
+            filename,
+            dtype=str
+        )
 
     columns = [clean_column_name(col) for col in df.columns]
     logger.info("List of columns:")
@@ -232,12 +227,8 @@ def create_table_in_postgres(filename, postgres_conn):
     execute_query(sqlQueryCreate, postgres_conn, logger)
 
 
+
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
-    return (
-        "COPY CDW.STAGING."
-        + TARGET
-        + " ("
-        + ", ".join(cleaned_columns)
-        + ") FROM STDIN WITH CSV HEADER"
-    )
+    return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV HEADER"
+

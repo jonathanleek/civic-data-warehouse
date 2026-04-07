@@ -53,6 +53,11 @@ with DAG(
         python_callable=ensure_empty_staging_directory,
     )
 
+    ensure_staging_directory_op = PythonOperator(
+        task_id="ensure_staging_directory",
+        python_callable=ensure_staging_directory
+    )
+
     # get list of files in s3
     list_s3_objects = S3ListOperator(
         bucket="civic-data-warehouse-lz", task_id="S3_List", aws_conn_id="s3_datalake"
