@@ -7,10 +7,8 @@
 
 ### Local Setup (no AWS required)
 
-1. Create your Dockerfile from the local template:
-   ```
-   cp Dockerfile.local Dockerfile
-   ```
+1. Use the checked-in local Dockerfile at the repository root.
+   No copy step is required unless you want to customize it.
 
 2. Create your Airflow settings file:
    ```
@@ -43,11 +41,8 @@ You can browse uploaded files in the MinIO console at http://localhost:9001.
 
 If you need to connect to the production AWS environment instead:
 
-1. Copy the cloud Dockerfile template:
-   ```
-   cp Dockerfile_Example Dockerfile
-   ```
-2. Fill in your AWS credentials in the Dockerfile
+1. Start from the checked-in `Dockerfile`.
+2. Fill in your AWS credentials in the Dockerfile as needed for your environment.
 3. Remove or skip creating `airflow_settings.yaml` (connections come from AWS SSM)
 4. Run `astro dev start`
 

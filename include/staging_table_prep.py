@@ -5,7 +5,6 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.log import logging_mixin
 import pandas as pd
-import numpy as np
 from io import StringIO
 import re
 
@@ -150,14 +149,18 @@ def create_table_in_postgres(filename, postgres_conn):
     for col_index, column in enumerate(columns):
         logger.info(f"column index {col_index} is '{column}'")
 
-    # Build SQL code to drop table if exists and create table
+    # Rebuild the staging table each run so its schema matches the latest source file.
+    # This avoids stale column definitions from prior runs, including the old VARCHAR(64) width.
     sqlQueryCreate = ""
+    sqlQueryCreate += "DROP TABLE IF EXISTS CDW.STAGING." + tablename + ";\n"
     sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " (\n"
 
-    # Define columns for table
+    # Staging is the raw landing area, so keep source values lossless.
+    # Use TEXT instead of VARCHAR(64) to avoid truncating long descriptions,
+    # owner names, legal descriptions, and permit text.
     for column in columns:
         cleaned_column = clean_column_name(column)
-        sqlQueryCreate += cleaned_column + " VARCHAR(64),\n"
+        sqlQueryCreate += cleaned_column + " TEXT,\n"
 
     sqlQueryCreate = sqlQueryCreate[:-2]
     sqlQueryCreate += ");"
@@ -175,43 +178,29 @@ def create_staging_table(bucket, s3_conn_id, postgres_conn_id, key):
     create_table_in_postgres(filename="/tmp/" + key, postgres_conn=postgres_conn_id)
 
 
-def SQL_INSERT_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
-    # Generate the SQL insert statement from dataframe
-    sql_texts = []
-    # COPY table (column1, column2, ...) FROM '/path/to/data.csv' WITH (FORMAT CSV)
-    for index, row in SOURCE.iterrows():
-        cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
-        sql_texts.append(
-            "INSERT INTO CDW.STAGING."
-            + TARGET
-            + " ("
-            + ", ".join(cleaned_columns)
-            + ") VALUES "
-            + str(tuple(row.values))
-        )
-    return sql_texts
-
-
 def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
     logger = logging_mixin.LoggingMixin().logger()
-    # Import table from S3 bucket to a pandas dataframe and convert to an array
+    # Read everything as text so IDs like ParcelId keep leading zeroes.
     logger.info("Attempting to populate " + key)
     hook = S3Hook(aws_conn_id=s3_conn_id)
     obj = hook.read_key(bucket_name=bucket, key=key)
-    df = pd.read_csv(StringIO(obj))
-    for column in df.columns:
-        if df[column].dtype == object:
-            df[column] = df[column].replace("'", "''", inplace=True)
-    df.replace(np.nan, "None", inplace=True)
-    records = df.to_records(index=True)
+    df = pd.read_csv(StringIO(obj), dtype=str)
+    df = df.where(pd.notna(df), None)
 
-    # Read table from S3 bucket
     filename = "/tmp/" + key
     tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-    columns = list(df.columns)
+    columns = [clean_column_name(col) for col in df.columns]
+    rows = df.itertuples(index=False, name=None)
 
-    # Build SQL code to insert data into table
-    sqlQueryInsert = SQL_INSERT_STATEMENT_FROM_DATAFRAME(df, tablename)
-    logger.debug(sqlQueryInsert)
-    # run sqlQueryCreate in Postgres
-    execute_query(sqlQueryInsert, postgres_conn, logger)
+    postgres_hook = PostgresHook(
+        postgres_conn_id=postgres_conn,
+        log_sql=(logger.level == logging.DEBUG),
+    )
+    postgres_hook.insert_rows(
+        table=f"staging.{tablename}",
+        rows=rows,
+        target_fields=columns,
+        commit_every=1000,
+        executemany=True,
+        fast_executemany=True,
+    )

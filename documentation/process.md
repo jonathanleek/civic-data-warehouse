@@ -1,6 +1,6 @@
 CDW REQUIREMENTS
 - Secret Manager
-  - We are using AWS ParameterStore. Example of how to setup connection is included in Dockerfile_Example
+  - We are using AWS ParameterStore. For AWS-backed development, start from the checked-in `Dockerfile` and add the required connection setup there.
   - secret_manager_test.py can be used to confirm you have the secret manager connection configured correctly
 - SQL Database
   - We are using  postgreSQL hosted in AWS Aurora.  Connection information is being stored as 'cdw-dev' in secret manager
