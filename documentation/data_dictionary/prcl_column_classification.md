@@ -25,5 +25,6 @@ Primary sheet:
 A few important caveats:
 
 - The staging layer stores everything as `TEXT`, so this sheet is about meaning, not warehouse data types.
+- `profile_status = boolean` means the column behaves like a true/false flag in staging, even though the raw values are stored as `0` and `1`.
 - Some fields are clearly coded even when a matching city vocabulary or local lookup table has not been found yet.
 - `other` does not mean useless. It usually means one of these: empty in the current snapshot, placeholder-only, or needs manual interpretation.

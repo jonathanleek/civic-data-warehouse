@@ -37,7 +37,7 @@ ordinal_position,column_name,bucket,profile_status,non_empty_rows,non_empty_pct,
 36,propertyclasscode,coded_data,coded_no_lookup,135894,100.00,8,0 | 10 | 12 | 13 | 14,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 37,asrlanduse1,coded_data,coded,135894,100.00,387,0 | 1000 | 1010 | 1015 | 1017,staging.prclcode_cdlanduse / city vocabulary 24,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse / city vocabulary 24.
 38,asrlanduse2,coded_data,coded,135894,100.00,20,0 | 1114 | 1115 | 1116 | 1130,staging.prclcode_cdlanduse / city vocabulary 24,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse / city vocabulary 24.
-39,isabatedproperty,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+39,isabatedproperty,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 40,abatementtype,coded_data,coded_no_lookup,1253,0.92,3,CH353 | CH99 | EEZ,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 41,abatementstartyear,actual_data,literal,135894,100.00,22,0 | 2002 | 2003 | 2004 | 2005,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 42,abatementendyear,actual_data,literal,135894,100.00,20,0 | 2026 | 2027 | 2028 | 2029,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
@@ -45,13 +45,13 @@ ordinal_position,column_name,bucket,profile_status,non_empty_rows,non_empty_pct,
 44,redevyearend,actual_data,literal,135894,100.00,56,0 | 1 | 10 | 11 | 12,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 45,redevphase2,coded_data,coded_no_lookup,135894,100.00,5,0 | 1 | 2 | 3 | 9,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 46,redevyearend2,actual_data,literal,135894,100.00,29,0 | 14 | 21 | 22 | 23,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
-47,vacantlot,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+47,vacantlot,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 48,specbusdist,coded_data,coded,135894,100.00,38,0 | 103 | 104 | 106 | 11,staging.prclcode_cdspecbusdist,Coded field; related lookup or vocabulary: staging.prclcode_cdspecbusdist.
 49,specbusdist2,coded_data,coded,135894,100.00,11,0 | 18 | 20 | 24 | 26,staging.prclcode_cdspecbusdist,Coded field; related lookup or vocabulary: staging.prclcode_cdspecbusdist.
 50,specbusdist3,other,placeholder_zero,135894,100.00,1,0,staging.prclcode_cdspecbusdist,Only a placeholder zero value appears in the current staging snapshot.
 51,tifdist,coded_data,coded,135894,100.00,107,0 | 101 | 102 | 106 | 112,staging.prclcode_cdtifdist,Coded field; related lookup or vocabulary: staging.prclcode_cdtifdist.
 52,lendingagcy,coded_data,coded_no_lookup,135894,100.00,109,0 | 122 | 136 | 145 | 173,,Coded field; no matching lookup table or published vocabulary has been linked yet.
-53,condominium,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+53,condominium,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 54,nbrofunitssource,coded_data,coded,135894,100.00,9,0 | 1 | 10 | 110 | 120,city vocabulary 96 (Number Of Units Source),Coded field; related lookup or vocabulary: city vocabulary 96 (Number Of Units Source).
 55,nbrofunits,actual_data,literal,135894,100.00,185,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 56,nbrofapts,actual_data,literal,135894,100.00,180,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
@@ -135,8 +135,8 @@ ordinal_position,column_name,bucket,profile_status,non_empty_rows,non_empty_pct,
 134,cdadist,coded_data,coded_no_lookup,135894,100.00,19,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 135,cdasubdist,coded_data,coded,135894,100.00,77,1 | 10 | 11 | 12 | 13,staging.corcode_cdcdasubdist,Coded field; related lookup or vocabulary: staging.corcode_cdcdasubdist.
 136,policedist,coded_data,coded_no_lookup,135894,100.00,7,0 | 1 | 2 | 3 | 4,,Coded field; no matching lookup table or published vocabulary has been linked yet.
-137,ishudqualifiedtract,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
-138,comneedgrantcode,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+137,ishudqualifiedtract,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+138,comneedgrantcode,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 139,censtract20,coded_data,coded_no_lookup,135894,100.00,105,1011 | 1012 | 1013 | 1014 | 1015,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 140,censblock20,coded_data,coded_no_lookup,135894,100.00,448,1000 | 1001 | 1002 | 1003 | 1004,,Coded field; no matching lookup table or published vocabulary has been linked yet.
 141,censtract10,coded_data,coded_no_lookup,135894,100.00,107,1011 | 1012 | 1013 | 1014 | 1015,,Coded field; no matching lookup table or published vocabulary has been linked yet.
@@ -169,14 +169,14 @@ ordinal_position,column_name,bucket,profile_status,non_empty_rows,non_empty_pct,
 168,presrevdist,coded_data,coded,135894,100.00,27,0 | 1 | 10 | 11 | 12,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
 169,zip,actual_data,literal,135894,100.00,31,63101 | 63102 | 63103 | 63104 | 63105,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 170,floodplain,coded_data,coded,135894,100.00,7,0 | 10 | 11 | 30 | 31,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
-171,onfloodblock,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+171,onfloodblock,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 172,specparceltype,coded_data,coded,638,0.47,5,C | G | K | S | X,staging.prclcode_cdspecparceltype,Coded field; related lookup or vocabulary: staging.prclcode_cdspecparceltype.
 173,subparceltype,coded_data,coded,8894,6.54,10,A | C | E | G | K,staging.prclcode_cdsubparceltype,Coded field; related lookup or vocabulary: staging.prclcode_cdsubparceltype.
 174,nbrofsubaccts,actual_data,literal,135894,100.00,2,0 | 1,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 175,nbrofcondos,actual_data,literal,135894,100.00,74,0 | 10 | 100 | 102 | 103,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
-176,lrmsparcel,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
-177,acctprimary,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
-178,gisprimary,coded_data,coded_no_lookup,135894,100.00,2,0 | 1,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+176,lrmsparcel,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+177,acctprimary,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+178,gisprimary,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
 179,giscityblock,actual_data,literal,135894,100.00,5718,1184.04 | 2571 | 4699.05 | 3542 | 3226,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 180,gisparcel,actual_data,literal,135894,100.00,943,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
 181,gisownercode,coded_data,coded_no_lookup,135894,100.00,4,0 | 1 | 5 | 7,,Coded field; no matching lookup table or published vocabulary has been linked yet.
