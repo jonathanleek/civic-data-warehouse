@@ -12,7 +12,12 @@ This folder is the place to record those answers.
 
 ## Current Scope
 
-The first seed focuses on parcel and building modeling because those are the spine of the warehouse.
+The current seed covers the parcel spine plus its immediate fan-out into:
+
+- `building`
+- `assessment`
+- `legal_entity`
+- `address`
 
 Relevant source references:
 
@@ -26,6 +31,8 @@ Relevant source references:
   - `39` Parcel Attribute Type
   - `53` Zoning Code
   - `58` Building Exterior Wall Type
+  - `65` Street Prefix Direction
+  - `66` Street Type
   - `69` Multi Parcel Ind
   - `96` Number Of Units Source
 
@@ -39,6 +46,8 @@ The raw parcel archive currently ingested by this repo was confirmed on April 19
   - Refreshes local snapshots of city field definitions and vocabularies.
 - [reference_manifest.json](./reference_manifest.json)
   - Download metadata for the local reference snapshots.
+- [assessment_legal_entity_address_notes.md](./assessment_legal_entity_address_notes.md)
+  - Grain, deduping, and modeling notes for the next transformation pass.
 - [source_field_definitions](./source_field_definitions/)
   - Machine-readable field definitions from the city's metadata endpoints.
 - [controlled_vocabularies](./controlled_vocabularies/)
@@ -80,17 +89,21 @@ The raw parcel archive currently ingested by this repo was confirmed on April 19
 - The parcel source supports `ZONING1` through `ZONING3`, but `current.parcel` only allows one `zoning_class_id`.
 - The raw parcel source is mostly parcel-grain. `current.building` and `current.unit` will require row-generation logic because fields like `NUMBLDGS`, `BDG1AREA`, and `NUMUNITS` describe buildings indirectly.
 - The schema narrative in [documentation/schema/schema.md](../schema/schema.md) says addresses belong at the `unit` grain, but the current source material is still parcel-centric. The dictionary keeps that tension explicit instead of hiding it.
+- The same physical `address` table will have to serve at least two semantic roles:
+  - owner mailing addresses linked from `legal_entity.address_id`
+  - site addresses linked to property entities
+- `current.assessment.assessment_date` is not cleanly sourced from the parcel extract today. The `UPDATED` field may be usable as a record timestamp, but it is not clearly an official assessment date.
 
 ## Suggested Expansion Order
 
-1. Finish parcel fan-out into `assessment`, `legal_entity`, and `address`.
-2. Decide the parcel ID strategy:
+1. Decide the parcel ID strategy:
    - CDW surrogate `parcel_id`
    - source `HANDLE`
    - public-facing `ParcelId`
-3. Decide whether zoning and land use stay single-valued or move to bridge tables.
+2. Decide whether zoning and land use stay single-valued or move to bridge tables.
+3. Add an explicit classification target for `ASRCLASS*` owner-class codes.
 4. Document raw `PrclCode_*` tables exported from `prcl.mdb`, especially parcel attribute and improvement code tables.
-5. After parcel/building are stable, fan out into permits, inspections, condemnations, and sales.
+5. After the property spine is stable, fan out into permits, inspections, condemnations, and sales.
 
 ## Refreshing Reference Snapshots
 

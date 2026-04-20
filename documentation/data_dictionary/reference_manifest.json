@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-20T02:09:18+00:00",
+  "generated_at_utc": "2026-04-20T02:22:02+00:00",
   "files": [
     {
       "category": "source_field_definitions",
@@ -64,6 +64,22 @@
       "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=58&format=csv",
       "sha256": "e6de30f4d4cf747c917e914df51ebded605bfdc33ed51e9c51d4a8e5ae8e7427",
       "bytes": 3209
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Street Prefix Direction",
+      "path": "controlled_vocabularies/street_prefix_direction.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=65&format=csv",
+      "sha256": "0fcdb09452fbff59d682da39ce2ac3589d9080dc902eddd6a13da33313555d70",
+      "bytes": 273
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Street Type",
+      "path": "controlled_vocabularies/street_type.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=66&format=csv",
+      "sha256": "dcf62f1891de1a85ff40959f5883e7e88894d2f0e29b2bd864bbc97aef192cf8",
+      "bytes": 766
     },
     {
       "category": "controlled_vocabularies",

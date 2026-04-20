@@ -71,6 +71,18 @@ DOWNLOADS = [
     ),
     DownloadSpec(
         category="controlled_vocabularies",
+        name="Street Prefix Direction",
+        url="https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=65&format=csv",
+        relative_path="controlled_vocabularies/street_prefix_direction.csv",
+    ),
+    DownloadSpec(
+        category="controlled_vocabularies",
+        name="Street Type",
+        url="https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=66&format=csv",
+        relative_path="controlled_vocabularies/street_type.csv",
+    ),
+    DownloadSpec(
+        category="controlled_vocabularies",
         name="Multi Parcel Ind",
         url="https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=69&format=csv",
         relative_path="controlled_vocabularies/multi_parcel_ind.csv",
