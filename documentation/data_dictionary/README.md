@@ -48,6 +48,10 @@ The raw parcel archive currently ingested by this repo was confirmed on April 19
   - Download metadata for the local reference snapshots.
 - [assessment_legal_entity_address_notes.md](./assessment_legal_entity_address_notes.md)
   - Grain, deduping, and modeling notes for the next transformation pass.
+- [legacy_mapping_workbook_sheet_inventory.md](./legacy_mapping_workbook_sheet_inventory.md)
+  - Sheet-by-sheet inventory of the legacy Excel workbook.
+- [legacy_workbook_useful_findings.md](./legacy_workbook_useful_findings.md)
+  - The subset of legacy workbook findings that still appear useful now.
 - [source_field_definitions](./source_field_definitions/)
   - Machine-readable field definitions from the city's metadata endpoints.
 - [controlled_vocabularies](./controlled_vocabularies/)
@@ -86,6 +90,11 @@ The raw parcel archive currently ingested by this repo was confirmed on April 19
 - The implemented DDL in [include/sql/create_current.sql](../../include/sql/create_current.sql) and the conceptual model in [documentation/schema/schema.dbml](../schema/schema.dbml) do not fully agree.
   - Example: `current.parcel` is denormalized in SQL (`county`, `neighborhood`) but normalized in `schema.dbml` (`county_id`, `neighborhood_id`).
   - Example: `zip_code` is `int` in SQL even though ZIP codes behave like identifiers and should stay text.
+- The legacy workbook's `ID Types` sheet is still useful context for the parcel-ID problem:
+  - legacy `Parcel11` / `ParcelId` was documented as `CityBlock + Parcel + OwnerCode`
+  - legacy `Parcel9` was documented as `CityBlock + Parcel`
+  - legacy `Handle` was documented as a GIS-derived parcel/building identifier with condominium signaling
+  - these should be treated as strong historical clues, not unquestioned truth, until they are revalidated against live source data
 - The parcel source supports `ZONING1` through `ZONING3`, but `current.parcel` only allows one `zoning_class_id`.
 - The raw parcel source is mostly parcel-grain. `current.building` and `current.unit` will require row-generation logic because fields like `NUMBLDGS`, `BDG1AREA`, and `NUMUNITS` describe buildings indirectly.
 - The schema narrative in [documentation/schema/schema.md](../schema/schema.md) says addresses belong at the `unit` grain, but the current source material is still parcel-centric. The dictionary keeps that tension explicit instead of hiding it.
@@ -93,6 +102,32 @@ The raw parcel archive currently ingested by this repo was confirmed on April 19
   - owner mailing addresses linked from `legal_entity.address_id`
   - site addresses linked to property entities
 - `current.assessment.assessment_date` is not cleanly sourced from the parcel extract today. The `UPDATED` field may be usable as a record timestamp, but it is not clearly an official assessment date.
+
+## Useful Legacy Workbook Findings
+
+The old workbook still contains a few findings worth preserving.
+
+Source:
+
+- [LEGACY - Mapping.xlsx](../data_sources/LEGACY%20-%20Mapping.xlsx)
+- summarized in [legacy_workbook_useful_findings.md](./legacy_workbook_useful_findings.md)
+
+The most useful carry-overs so far are:
+
+- From `ID Types`:
+  - `Parcel11` / `ParcelId` was documented as `CityBlock + Parcel + OwnerCode`
+  - `Parcel9` was documented as `CityBlock + Parcel`
+  - `Handle` was documented as a GIS-derived parcel/building identifier that also signals condominium handling
+  - `Parcel` reaching four digits was called out as a condo-building placeholder case
+- From `Type Mapping`:
+  - the legacy workflow already used a "land as text first, type later" pattern
+  - that matches the current CDW staging approach and gives it historical justification
+- From `All Databases`:
+  - `prcl.mdb` was treated as the main source
+  - the `codes.zip` databases were treated as critical supporting lookup sources
+- From `All Field Defs`:
+  - the old project already had a pattern of aggregating external field-definition files
+  - the current `source_field_definitions/` folder is a cleaner successor to that idea
 
 ## Suggested Expansion Order
 
