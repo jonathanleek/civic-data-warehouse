@@ -4,7 +4,7 @@ import pandas
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 prefix_separator = "_"
 delimiter = "/"
 
