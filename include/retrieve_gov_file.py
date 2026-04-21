@@ -1,12 +1,14 @@
-import subprocess, os
+import subprocess, os, datetime, logging
 import shutil, wget
 import pandas
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from zipfile import ZipFile
-from airflow.utils.log import logging_mixin
 
+logger = logging.getLogger()
+prefix_separator = "_"
+delimiter = "/"
 
-def _csv_passes_strict_parse(path: str, logger) -> bool:
+def _csv_passes_strict_parse(path: str) -> bool:
     """
     Return True if pandas can read the file as CSV without ragged rows or parse errors.
     Used before uploading to S3 so malformed exports never enter the lake.
@@ -27,22 +29,43 @@ def _csv_passes_strict_parse(path: str, logger) -> bool:
             e,
         )
         return False
+    
+
+def create_s3_prefix():
+
+    cur_time = datetime.datetime.now(datetime.timezone.utc)
+
+    # KRT note 04/20/26 :
+    # I tend to dislike very dense interpolated strings. Settings things up with a joined array allows
+    #   vertical stacking of the parameters, which I think looks cleaner. Feel free to change this if 
+    #   you find it unclear.
+    cur_time_iter = [f'{cur_time.year:04d}', 
+                     f'{cur_time.month:02d}', 
+                     f'{cur_time.day:02d}', 
+                     f'{cur_time.hour:02d}', 
+                     f'{cur_time.minute:02d}', 
+                     f'{cur_time.second:02d}']
+    
+    s3_prefix = prefix_separator.join(cur_time_iter)
+
+    logger.info("Using s3 prefix '%s'", s3_prefix)
+
+    return s3_prefix;
 
 
-def retrieve_gov_file(filename, file_url, bucket, s3_conn_id, task_id, base_prep_dir):
+def retrieve_gov_file(filename, file_url, bucket, s3_prefix, s3_conn_id, task_id, base_prep_dir):
     """
     Downloads a single file to a temporary directory, recursively unzips it, converts .mdb files if needed, 
      and uploads it to s3
     :return: none
     """
-    logger = logging_mixin.LoggingMixin().logger()
 
-    prep_dir = build_temp_subdirectory(task_id, base_prep_dir, logger)
+    prep_dir = build_temp_subdirectory(task_id, base_prep_dir)
 
-    download_dest = download_gov_file(filename, file_url, base_prep_dir, logger)
+    download_dest = download_gov_file(filename, file_url, base_prep_dir)
 
     if filename.endswith(".zip"):
-        unpack_zip(download_dest, prep_dir, logger)
+        unpack_zip(download_dest, prep_dir)
     else:
         logger.info(f"Moving {download_dest} into {prep_dir} directory")
         shutil.move(download_dest, prep_dir)
@@ -50,18 +73,18 @@ def retrieve_gov_file(filename, file_url, bucket, s3_conn_id, task_id, base_prep
     for file in os.listdir(prep_dir):
         logger.info(f"{file} found in {prep_dir} for sending to S3")
         if file.endswith(".mdb"):
-            export_mdb_file(bucket, s3_conn_id, logger, file, prep_dir)
+            export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir)
         elif file.endswith(".xls"):
-            export_xls_file(bucket, s3_conn_id, logger, file, prep_dir)
+            export_xls_file(bucket, s3_prefix, s3_conn_id, file, prep_dir)
         elif file.endswith(".txt"):
-            export_txt_file(bucket, s3_conn_id, logger, file, prep_dir)
+            export_txt_file(bucket, s3_prefix, s3_conn_id, file, prep_dir)
         elif file.endswith(".csv"):
-            upload_to_s3(bucket, s3_conn_id, logger, file, prep_dir)
+            upload_to_s3(bucket, s3_prefix, s3_conn_id, file, prep_dir)
         else:
             logger.warning(f"{file} is not an .mdb or .csv and is ignored")
 
 
-def build_temp_subdirectory(task_id, base_prep_dir, logger):
+def build_temp_subdirectory(task_id, base_prep_dir):
     """
     Generate a subdirectory to contain task-specific files. Ensure directory exists and is empty.
     :return: temp directory to use
@@ -82,7 +105,7 @@ def build_temp_subdirectory(task_id, base_prep_dir, logger):
     return prep_dir
 
 
-def download_gov_file(filename, file_url, base_prep_dir, logger):
+def download_gov_file(filename, file_url, base_prep_dir):
     """
     Download the source file to the base prep directory.
     :return: full path to downloaded file
@@ -93,7 +116,7 @@ def download_gov_file(filename, file_url, base_prep_dir, logger):
     return download_dest
 
 
-def unpack_zip(path_to_zip, extract_path, logger):
+def unpack_zip(path_to_zip, extract_path):
     """
     Recursively unzips a file and outputs its content to a directory.
     :return: None
@@ -107,7 +130,7 @@ def unpack_zip(path_to_zip, extract_path, logger):
         try:
             if name.endswith(".zip"):
                 inner_zipfile = os.path.join(extract_path, name)
-                unpack_zip(path_to_zip=inner_zipfile, extract_path=extract_path, logger=logger)
+                unpack_zip(path_to_zip=inner_zipfile, extract_path=extract_path)
                 os.remove(inner_zipfile)
                 logger.info(f"{name} successfully unzipped")
         except:
@@ -115,14 +138,14 @@ def unpack_zip(path_to_zip, extract_path, logger):
             pass
 
 
-def upload_to_s3(bucket, s3_conn_id, logger, file, prep_dir):
+def upload_to_s3(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Uploads a target file to s3. CSV files must pass strict pandas parsing or they are discarded.
     :return: None
     """
-    key = file.replace(" ", "")
+    key = s3_prefix + delimiter + file.replace(" ", "")
     source_file = os.path.join(prep_dir, file)
-    if file.lower().endswith(".csv") and not _csv_passes_strict_parse(source_file, logger):
+    if file.lower().endswith(".csv") and not _csv_passes_strict_parse(source_file):
         try:
             os.remove(source_file)
         except OSError as e:
@@ -136,7 +159,7 @@ def upload_to_s3(bucket, s3_conn_id, logger, file, prep_dir):
     logger.info(f"{file} successfully loaded to S3")
 
 
-def export_txt_file(bucket, s3_conn_id, logger, file, prep_dir):
+def export_txt_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Rename .txt to .csv and upload. Strict CSV validation runs in upload_to_s3; invalid files are removed.
     :return: None
@@ -147,10 +170,10 @@ def export_txt_file(bucket, s3_conn_id, logger, file, prep_dir):
     full_csv_filename = os.path.join(prep_dir, csv_filename)
     shutil.move(prepped_file, full_csv_filename)
     logger.info(f"renamed {prepped_file} to {full_csv_filename}")
-    upload_to_s3(bucket, s3_conn_id, logger, csv_filename, prep_dir)
+    upload_to_s3(bucket, s3_prefix, s3_conn_id, csv_filename, prep_dir)
 
 
-def export_xls_file(bucket, s3_conn_id, logger, file, prep_dir):
+def export_xls_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Convert the .xls file to a .csv and upload it.
     :return: None
@@ -162,9 +185,9 @@ def export_xls_file(bucket, s3_conn_id, logger, file, prep_dir):
     full_csv_filename = os.path.join(prep_dir, csv_filename)
     excel_dataframe.to_csv(full_csv_filename)
     logger.info(f"loaded {prepped_file} and written all data to {full_csv_filename}")
-    upload_to_s3(bucket, s3_conn_id, logger, csv_filename, prep_dir)
+    upload_to_s3(bucket, s3_prefix, s3_conn_id, csv_filename, prep_dir)
 
-def export_mdb_file(bucket, s3_conn_id, logger, file, prep_dir):
+def export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Strip all tables in an .mdb file into separate .csv files. Upload the resulting .csv files to S3.
     :return: None
@@ -206,7 +229,7 @@ def export_mdb_file(bucket, s3_conn_id, logger, file, prep_dir):
                                 )
                             )
                 
-            upload_to_s3(bucket, s3_conn_id, logger, export_file, prep_dir)
+            upload_to_s3(bucket, s3_prefix, s3_conn_id, export_file, prep_dir)
 
 
 def clear_files_and_subdirs(dir_to_clear):
@@ -214,7 +237,6 @@ def clear_files_and_subdirs(dir_to_clear):
     Remove all files and subdirectories in a directory.
     :return: None
     """
-    logger = logging_mixin.LoggingMixin().logger()
     logger.info(f"clearing all files in {dir_to_clear}")
     for root, dirs, files in os.walk(dir_to_clear):
         for file in files:
