@@ -6,7 +6,7 @@ from airflow.utils.log import logging_mixin
 import pandas as pd
 import re
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 staging_download_dest = "/tmp/stage/"
 prefix_delimiter = "/"
 
