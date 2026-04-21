@@ -6,18 +6,15 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG
 
-from include.staging_table_prep import (
-    create_staging_table,
-    download_from_s3,
-    ensure_empty_staging_directory,
-    populate_staging_table,
-)
+from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_empty_staging_directory, download_from_s3, get_latest_s3_prefix
+
 
 doc_md_DAG = """
 ### staging_table_prep
 
 This dag truncates any existing tables in the staging schema, the creates a table for any file found in the s3 bucket.
 """
+
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 sql_dir = os.path.join(base_dir, "sql")
@@ -53,14 +50,21 @@ with DAG(
         python_callable=ensure_empty_staging_directory,
     )
 
-    ensure_staging_directory_op = PythonOperator(
-        task_id="ensure_staging_directory",
-        python_callable=ensure_staging_directory
+    get_latest_s3_prefix_op = PythonOperator(
+        task_id="get_latest_s3_prefix",
+        python_callable=get_latest_s3_prefix,
+        op_kwargs={
+            "bucket": BUCKET,
+            "s3_conn_id": "s3_datalake",
+        }
     )
 
     # get list of files in s3
     list_s3_objects = S3ListOperator(
-        bucket="civic-data-warehouse-lz", task_id="S3_List", aws_conn_id="s3_datalake"
+        bucket=BUCKET, 
+        prefix=get_latest_s3_prefix_op.output,
+        task_id="S3_List", 
+        aws_conn_id="s3_datalake"
     )
 
     prepare_list = PythonOperator(
@@ -88,12 +92,13 @@ with DAG(
         trigger_rule="all_done",
     ).expand(op_kwargs=prepare_list.output)
 
-(
-    drop_and_create
-    >> ensure_staging_directory_op
-    >> list_s3_objects
-    >> prepare_list
-    >> download_from_s3_op
-    >> create_staging_tables
-    >> populate_staging_tables
-)
+    (
+        drop_and_create
+        >> ensure_staging_directory_op
+        >> get_latest_s3_prefix_op
+        >> list_s3_objects
+        >> prepare_list
+        >> download_from_s3_op
+        >> create_staging_tables
+        >> populate_staging_tables
+    )

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG, task_group
 
-from include.retrieve_gov_file import clear_files_and_subdirs, retrieve_gov_file
+from include.retrieve_gov_file import retrieve_gov_file, clear_files_and_subdirs, create_s3_prefix
 
 doc_md_DAG = """
 ### govt_file_download
@@ -16,6 +16,7 @@ Currently converts the following file formats. All others are loaded to s3 after
 
 
 """
+
 
 gov_files = "include/gov_files.json"
 BUCKET = "civic-data-warehouse-lz"
@@ -33,7 +34,7 @@ with DAG(
     default_args={"retries": 3, "retry_delay": timedelta(minutes=1)},
 ) as dag:
 
-    @task_group()
+    @task_group(group_id="upload_files")
     def upload_all_files():
         with open(gov_files, "r") as read_file:
             gov_file_data = json.load(read_file)
@@ -46,11 +47,17 @@ with DAG(
                         "filename": file["file_name"],
                         "file_url": file["file_location"],
                         "bucket": BUCKET,
+                        "s3_prefix": s3_prefix_task.output,
                         "s3_conn_id": "s3_datalake",
                         "task_id": task_id,
                         "base_prep_dir": prep_directory,
                     },
                 )
+
+    s3_prefix_task = PythonOperator(
+        task_id='s3_prefix_task',
+        python_callable=create_s3_prefix,
+    )
 
     cleanup_task = PythonOperator(
         task_id="clear_tmp_directory",
@@ -58,4 +65,8 @@ with DAG(
         op_kwargs={"dir_to_clear": prep_directory},
     )
 
-    upload_all_files() >> cleanup_task
+    (
+        s3_prefix_task
+        >> upload_all_files()
+        >> cleanup_task
+    )
