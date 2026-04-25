@@ -12,6 +12,7 @@ import os
 from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_staging_directory, download_from_s3, get_latest_s3_prefix
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -88,6 +89,12 @@ with DAG(
         trigger_rule="all_done",
     ).expand(op_kwargs=prepare_list.output)
 
+    trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt_transform",
+        trigger_dag_id="dbt_transform",
+        wait_for_completion=False,
+    )
+
     (
         drop_and_create
         >> ensure_staging_directory_op
@@ -97,4 +104,5 @@ with DAG(
         >> download_from_s3_op
         >> create_staging_tables
         >> populate_staging_tables
+        >> trigger_dbt
     )

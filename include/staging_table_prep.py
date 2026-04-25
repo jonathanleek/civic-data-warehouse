@@ -16,7 +16,7 @@ def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
     prefix_list:list[str] = \
         S3Hook(aws_conn_id=s3_conn_id).list_prefixes(bucket_name=bucket, delimiter=prefix_delimiter)
 
-    if prefix_list is None or prefix_list.count == 0:
+    if not prefix_list:
         logger.warning("No prefixes found. Assuming files are in root of bucket.")
         return ""
 
