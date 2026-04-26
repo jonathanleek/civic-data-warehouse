@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: stl_open_data
+    schema: staging
+    description: "Raw CSV data loaded from the St. Louis City open data portal via the staging_table_prep Airflow DAG."
+    tables:
+      - name: prcl_prcl
+        description: >
+          Primary parcel table from St. Louis City Assessor's Office (prcl.mdb → Prcl).
+          All columns are VARCHAR as loaded; types are cast in stg_prcl__prcl.
+        columns:
+          - name: handle
+            description: "11-digit city parcel identifier. Constructed from GisCityBlock + condo flag + GisParcel + GisOwnerCode."

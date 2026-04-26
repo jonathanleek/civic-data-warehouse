@@ -5,3 +5,4 @@ apache-airflow-providers-common-sql
 apache-airflow-providers-standard
 apache-airflow-providers-smtp
 xlrd==2.0.2
+astronomer-cosmos[dbt-postgres]>=1.4.0

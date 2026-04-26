@@ -17,7 +17,7 @@ with DAG(
     create_staging = SQLExecuteQueryOperator(
         task_id="create_staging",
         conn_id="cdw-dev",
-        sql="create_staging.sql",
+        sql="drop_and_create_staging.sql",
     )
 
     # Create schema "current" in cdw database

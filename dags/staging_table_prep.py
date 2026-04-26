@@ -9,9 +9,10 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.sdk import TaskGroup
 import os
-from include.staging_table_prep import create_staging_table, populate_staging_table
+from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_staging_directory, download_from_s3, get_latest_s3_prefix
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -34,16 +35,33 @@ with DAG(
     doc_md=doc_md_DAG,
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
-    truncate_staging = SQLExecuteQueryOperator(
-        task_id="truncate_staging",
+    drop_and_create = SQLExecuteQueryOperator(
+        task_id="drop_and_create_staging",
         conn_id="cdw-dev",
-        sql=f"truncate_schema.sql",
+        sql=f"drop_and_create_staging.sql",
         params={"schema": "staging"},
+    )
+
+    ensure_staging_directory_op = PythonOperator(
+        task_id="ensure_staging_directory",
+        python_callable=ensure_staging_directory
+    )
+
+    get_latest_s3_prefix_op = PythonOperator(
+        task_id="get_latest_s3_prefix",
+        python_callable=get_latest_s3_prefix,
+        op_kwargs={
+            "bucket": BUCKET,
+            "s3_conn_id": "s3_datalake",
+        }
     )
 
     # get list of files in s3
     list_s3_objects = S3ListOperator(
-        bucket="civic-data-warehouse-lz", task_id="S3_List", aws_conn_id="s3_datalake"
+        bucket=BUCKET, 
+        prefix=get_latest_s3_prefix_op.output,
+        task_id="S3_List", 
+        aws_conn_id="s3_datalake"
     )
 
     prepare_list = PythonOperator(
@@ -52,27 +70,39 @@ with DAG(
         op_args=[list_s3_objects.output],
     )
 
+    download_from_s3_op = PythonOperator.partial(
+        task_id="download_from_s3",
+        python_callable=download_from_s3,
+        op_args=["civic-data-warehouse-lz", "s3_datalake"],
+    ).expand(op_kwargs=prepare_list.output)
+
     create_staging_tables = PythonOperator.partial(
         task_id="create_staging_tables",
         python_callable=create_staging_table,
-        op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
+        op_args=["cdw-dev"],
     ).expand(op_kwargs=prepare_list.output)
-
-    # TODO 'forestry_maintenance_properties' is failing to populate.
-    # column "category" of relation "forestry_maintenance_properties" does not exist
-    # column names for forestry_maintenance_properties are in "" for some reason? Not seeing that in other tables
 
     populate_staging_tables = PythonOperator.partial(
         task_id="populate_staging_tables",
         python_callable=populate_staging_table,
-        op_args=["civic-data-warehouse-lz", "s3_datalake", "cdw-dev"],
+        op_args=["cdw-dev"],
         trigger_rule="all_done",
     ).expand(op_kwargs=prepare_list.output)
 
-(
-    truncate_staging
-    >> list_s3_objects
-    >> prepare_list
-    >> create_staging_tables
-    >> populate_staging_tables
-)
+    trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt_transform",
+        trigger_dag_id="dbt_transform",
+        wait_for_completion=False,
+    )
+
+    (
+        drop_and_create
+        >> ensure_staging_directory_op
+        >> get_latest_s3_prefix_op
+        >> list_s3_objects
+        >> prepare_list
+        >> download_from_s3_op
+        >> create_staging_tables
+        >> populate_staging_tables
+        >> trigger_dbt
+    )

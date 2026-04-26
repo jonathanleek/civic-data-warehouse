@@ -1,0 +1,78 @@
+version: 2
+
+models:
+  - name: dim_ward
+    description: "Distinct ward numbers extracted from the parcel table."
+    columns:
+      - name: ward_id
+        description: "Surrogate integer key (hashtext of ward number)."
+        data_tests:
+          - unique
+          - not_null
+      - name: ward
+        data_tests:
+          - not_null
+
+  - name: dim_neighborhood
+    description: "Distinct neighborhood codes extracted from the parcel table."
+    columns:
+      - name: neighborhood_id
+        description: "Surrogate integer key (hashtext of neighborhood code)."
+        data_tests:
+          - unique
+          - not_null
+      - name: neighborhood
+        data_tests:
+          - not_null
+
+  - name: dim_zoning_class
+    description: "Distinct zoning class codes extracted from the parcel table."
+    columns:
+      - name: zoning_class_id
+        description: "Surrogate integer key (hashtext of zoning code string)."
+        data_tests:
+          - unique
+          - not_null
+      - name: zoning_class
+        data_tests:
+          - unique
+          - not_null
+
+  - name: core_address
+    description: "Deduplicated owner mailing addresses sourced from the parcel table."
+    columns:
+      - name: address_id
+        description: "Surrogate integer key (hashtext of street+city+state+zip)."
+        data_tests:
+          - unique
+          - not_null
+
+  - name: core_legal_entity
+    description: "Deduplicated property owners extracted from the parcel table."
+    columns:
+      - name: legal_entity_id
+        description: "Surrogate integer key (hashtext of name+address)."
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        data_tests:
+          - not_null
+
+  - name: core_parcel
+    description: "Core parcel table. One row per parcel, keyed by CDW surrogate parcel_id."
+    columns:
+      - name: parcel_id
+        description: "Surrogate integer key derived from the city Handle identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: owner_id
+        description: "FK to core_legal_entity.legal_entity_id."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('core_legal_entity')
+                field: legal_entity_id
+              config:
+                severity: warn
