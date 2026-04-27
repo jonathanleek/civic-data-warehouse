@@ -105,6 +105,36 @@ Truncates the `staging` schema, lists all files in the S3 landing zone, then dyn
 
 **Task order:** `truncate_staging` > `S3_List` > `prepare_list` > `create_staging_tables` > `populate_staging_tables`
 
+### 4. `prcl_owner_parsing` - Owner Address Parsing
+
+**File:** `dags/prcl_owner_parsing.py`
+
+Rebuilds `current.int_prcl_owners` from distinct owner fields in `staging.prcl_prcl`. The DAG uses `usaddress` to parse `owneraddr` into mailing address components, then uses Splink to write probabilistic duplicate-owner candidates to `current.int_prcl_owner_match_candidates`.
+
+High-confidence matches with `match_weight >= 42.0` are written to `current.parcel_owner_mart`, with the matched owner records and parcel JSON arrays for each side of the match. Possible matches with `30.0 <= match_weight < 42.0` are exposed in `current.prcl_owner_match_review_queue`. Human decisions are stored in `current.prcl_owner_match_reviews`; accepted decisions are included in the mart as `splink_matched_human_reviewed`.
+
+To accept a possible match for the next mart rebuild:
+
+```sql
+insert into current.prcl_owner_match_reviews (match_id, review_decision, reviewer, review_notes)
+values ('<match_id>', 'accepted', '<name>', '<notes>')
+on conflict (match_id) do update
+set review_decision = excluded.review_decision,
+    reviewer = excluded.reviewer,
+    review_notes = excluded.review_notes,
+    reviewed_at = now();
+```
+
+The possible-match review app can be run locally with:
+
+```bash
+streamlit run apps/owner_match_review.py
+```
+
+It connects to the local CDW Postgres service by default (`localhost:5433`, database `cdw`) and writes review decisions to `current.prcl_owner_match_reviews`.
+
+**Task order:** `create_int_prcl_owners` > `create_int_prcl_owner_match_candidates` > `create_parcel_owner_mart`
+
 ### Utility DAGs
 
 | DAG | File | Purpose |
