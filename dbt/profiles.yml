@@ -1,0 +1,13 @@
+cdw:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_DB_HOST', 'cdw-postgres') }}"
+      user: "{{ env_var('DBT_DB_USER', 'cdw_user') }}"
+      password: "{{ env_var('DBT_DB_PASSWORD', 'cdw_password') }}"
+      port: 5432
+      dbname: cdw
+      schema: public
+      threads: 4
+      keepalives_idle: 0
