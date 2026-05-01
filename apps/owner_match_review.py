@@ -52,17 +52,60 @@ GAMMA_LABELS = {
 DISCREPANCY_TYPE_OPTIONS = [
     "",
     "missing_country",
+    "state_country_mixup",
     "misspelling",
     "middle_initial",
+    "name_order",
+    "person_vs_llc",
+    "differing_llc_name",
+    "one_owner_vs_two",
+    "ownername_split",
+    "ownername2_difference",
     "punctuation",
     "abbreviation",
     "business_suffix",
+    "care_of_difference",
+    "dba_or_aka",
+    "trust_difference",
+    "lessee_question",
+    "same_family_or_surname_change",
+    "department_difference",
+    "various_stl_city_dept",
     "address_cleanup",
     "unit_difference",
     "zip_difference",
     "accepted_owner_group",
     "OTHER",
 ]
+
+DISCREPANCY_TYPE_LABELS = {
+    "": "(none)",
+    "missing_country": "Missing country",
+    "state_country_mixup": "State/country mixup",
+    "misspelling": "Misspelling",
+    "middle_initial": "Middle initial",
+    "name_order": "NAME ORDER",
+    "person_vs_llc": "PERSON vs. LLC",
+    "differing_llc_name": "Differing LLC name",
+    "one_owner_vs_two": "1 OWNER vs. 2",
+    "ownername_split": "Owner name split",
+    "ownername2_difference": "Owner name 2 difference",
+    "punctuation": "Punctuation",
+    "abbreviation": "Abbreviation",
+    "business_suffix": "Business suffix",
+    "care_of_difference": "C/O difference",
+    "dba_or_aka": "DBA / AKA",
+    "trust_difference": "Trust difference",
+    "lessee_question": "Lessee?",
+    "same_family_or_surname_change": "Same family / surname change",
+    "department_difference": "Department difference",
+    "various_stl_city_dept": "VARIOUS STL CITY DEPT",
+    "address_cleanup": "Address cleanup",
+    "unit_difference": "Unit difference",
+    "zip_difference": "ZIP difference",
+    "accepted_owner_group": "Accepted owner group",
+    "OTHER": "OTHER",
+}
 
 
 st.set_page_config(
@@ -112,6 +155,10 @@ def secret_or_default(name: str, default: str) -> str:
         return st.secrets.get(name, default)
     except Exception:
         return default
+
+
+def format_discrepancy_type(value: str) -> str:
+    return DISCREPANCY_TYPE_LABELS.get(value, value.replace("_", " ").title())
 
 
 def db_config() -> dict[str, Any]:
@@ -1184,7 +1231,7 @@ def main() -> None:
         st.selectbox(
             "Discrepancy type",
             DISCREPANCY_TYPE_OPTIONS,
-            format_func=lambda value: "(none)" if value == "" else value.replace("_", " ").title(),
+            format_func=format_discrepancy_type,
             key=current_discrepancy_type_key(),
         )
         st.text_area("Other reason", key=current_other_reason_key(), height=80)
