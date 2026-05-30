@@ -154,10 +154,12 @@ def create_table_in_postgres(filename, postgres_conn):
     sqlQueryCreate = ""
     sqlQueryCreate += "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " (\n"
 
-    # Define columns for table
+    # Define columns for table. Staging is a raw landing area, so use TEXT to
+    # avoid silently truncating/dropping values that exceed a fixed width (e.g.
+    # decode-table descriptions longer than 64 chars).
     for column in columns:
         cleaned_column = clean_column_name(column)
-        sqlQueryCreate += cleaned_column + " VARCHAR(64),\n"
+        sqlQueryCreate += cleaned_column + " TEXT,\n"
 
     sqlQueryCreate = sqlQueryCreate[:-2]
     sqlQueryCreate += ");"
@@ -178,16 +180,24 @@ def create_staging_table(bucket, s3_conn_id, postgres_conn_id, key):
 def SQL_INSERT_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     # Generate the SQL insert statement from dataframe
     sql_texts = []
+    cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
     # COPY table (column1, column2, ...) FROM '/path/to/data.csv' WITH (FORMAT CSV)
     for index, row in SOURCE.iterrows():
-        cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
+        # Render every value as a single-quoted SQL string literal. The staging
+        # columns are all TEXT, and the values have already had their single
+        # quotes escaped to '' upstream. We build the literal explicitly rather
+        # than relying on str(tuple(...)), whose Python repr switches to double
+        # quotes for any value containing a single quote and produces invalid
+        # SQL (Postgres reads "..." as an identifier, not a string literal).
+        values = ", ".join("'" + str(value) + "'" for value in row.values)
         sql_texts.append(
             "INSERT INTO CDW.STAGING."
             + TARGET
             + " ("
             + ", ".join(cleaned_columns)
-            + ") VALUES "
-            + str(tuple(row.values))
+            + ") VALUES ("
+            + values
+            + ")"
         )
     return sql_texts
 
@@ -201,8 +211,12 @@ def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
     df = pd.read_csv(StringIO(obj))
     for column in df.columns:
         if df[column].dtype == object:
-            df[column] = df[column].replace("'", "''", inplace=True)
-    df.replace(np.nan, "None", inplace=True)
+            # Escape single quotes so the values are safe to embed in the
+            # INSERT ... VALUES (...) string built below. Using str.replace on
+            # the column (not Series.replace with inplace=True, which returns
+            # None and would wipe the entire column).
+            df[column] = df[column].str.replace("'", "''", regex=False)
+    df = df.replace(np.nan, "None")
     records = df.to_records(index=True)
 
     # Read table from S3 bucket
