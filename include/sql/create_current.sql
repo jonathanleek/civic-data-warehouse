@@ -93,8 +93,8 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."parcel" (
   "region_code" text NOT NULL,
   "parcel_seq" bigint NOT NULL,
   "cdw_id" text GENERATED ALWAYS AS (
-    lpad("country_code", 4, '0') || '.' ||
-    lpad("region_code", 6, '0') || '.' ||
+    lpad("country_code", 3, '0') || '.' ||
+    lpad("region_code", 5, '0') || '.' ||
     lpad("parcel_seq"::text, 8, '0') || '.' ||
     '0000' || '.' ||
     '00000'
@@ -115,8 +115,8 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."building" (
   "parcel_seq" bigint NOT NULL,
   "building_seq" bigint NOT NULL,
   "cdw_id" text GENERATED ALWAYS AS (
-    lpad("country_code", 4, '0') || '.' ||
-    lpad("region_code", 6, '0') || '.' ||
+    lpad("country_code", 3, '0') || '.' ||
+    lpad("region_code", 5, '0') || '.' ||
     lpad("parcel_seq"::text, 8, '0') || '.' ||
     lpad("building_seq"::text, 4, '0') || '.' ||
     '00000'
@@ -135,8 +135,8 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."unit" (
   "building_seq" bigint NOT NULL,
   "unit_seq" bigint NOT NULL,
   "cdw_id" text GENERATED ALWAYS AS (
-    lpad("country_code", 4, '0') || '.' ||
-    lpad("region_code", 6, '0') || '.' ||
+    lpad("country_code", 3, '0') || '.' ||
+    lpad("region_code", 5, '0') || '.' ||
     lpad("parcel_seq"::text, 8, '0') || '.' ||
     lpad("building_seq"::text, 4, '0') || '.' ||
     lpad("unit_seq"::text, 5, '0')

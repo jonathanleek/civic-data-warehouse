@@ -35,7 +35,7 @@ Structure
 =========
 ```
 <country>.<region>.<parcel>.<building>.<unit>
-   840   . 29510  .  000123  .  0000   . 00000      ← a St. Louis City parcel
+   840   . 29510  . 00012345 .  0000   . 00000      ← a St. Louis City parcel
 ```
 
 | Segment   | Authority (guarantees uniqueness)                                              | Notes |
@@ -46,7 +46,12 @@ Structure
 | building  | Sequence within the parcel                                                     | `0000` = parcel-level record (no building) |
 | unit      | Sequence within the building                                                   | `00000` = building-level record (no unit) |
 
-Any level not applicable is zero-filled (a vacant lot = `840.29510.000123.0000.00000`), and the
+**Canonical field widths** (zero-padded, used by the generated `cdw_id`): country **3**, region
+**5**, parcel **8**, building **4**, unit **5** — e.g. `840.29510.00012345.0007.00042`. (Country =
+ISO 3166-1 numeric is exactly 3; region = US FIPS is exactly 5; these widths are fixed so ids sort
+and prefix-join correctly.)
+
+Any level not applicable is zero-filled (a vacant lot = `840.29510.00012345.0000.00000`), and the
 identifier still joins cleanly by prefix — e.g. all parcels in a region are
 `840.29510.%`, all units of a building share its `…<parcel>.<building>.%` prefix.
 
