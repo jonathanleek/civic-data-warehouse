@@ -26,7 +26,9 @@ def _sniff(name: str, content_type: str | None, sample: bytes) -> str:
     if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
         return "looks like HTML (not data)"
 
-    if name.lower().endswith(".zip") or (content_type or "").lower().startswith("application/zip"):
+    if name.lower().endswith(".zip") or (content_type or "").lower().startswith(
+        "application/zip"
+    ):
         return "zip signature OK" if sample.startswith(b"PK") else "not a ZIP signature"
 
     if name.lower().endswith(".csv") or "csv" in (content_type or "").lower():
@@ -69,7 +71,9 @@ for entry in data["gov_files"]:
     sample = b""
     get_status: int | str = "?"
     try:
-        get_req = urllib.request.Request(url, method="GET", headers={"Range": "bytes=0-2047"})
+        get_req = urllib.request.Request(
+            url, method="GET", headers={"Range": "bytes=0-2047"}
+        )
         with urllib.request.urlopen(get_req, timeout=20, context=ssl_ctx) as r:
             get_status = r.status
             final_url = r.geturl()

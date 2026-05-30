@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12" # Matches the Python version in Astro Runtime 3.1.
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: ruff check
+        run: ruff check dags include tests
+      - name: ruff format --check
+        run: ruff format --check dags include tests
+
+  static-dag-tests:
+    name: Static DAG policy tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      # These are pure-AST checks; they do not import or execute DAG files and
+      # do not need Airflow installed, so they give fast PR feedback.
+      - name: Run static DAG best-practice tests
+        run: |
+          pytest \
+            tests/test_duplicate_dag_ids.py \
+            tests/test_no_globals_injection.py \
+            tests/test_no_hardcoded_secrets.py \
+            tests/test_no_metadata_db_access.py \
+            tests/test_no_nested_loops.py \
+            tests/test_no_subdags.py \
+            tests/test_no_top_level_execution.py \
+            tests/test_non_deterministic_dag_ids.py \
+            tests/test_sensor_modes.py \
+            tests/test_static_start_date.py
+
+  runtime-dag-tests:
+    name: DAG integrity tests (Astro Runtime)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Building the project image both validates the Docker build and gives us
+      # an environment with Airflow + the project's providers installed.
+      - name: Build Astro Runtime image
+        run: docker build -t cdw-dag-tests .
+      # Runs the full suite inside the image: the existing DAG integrity tests,
+      # the DagBag-based best-practice tests (catchup, etc.), and the static
+      # tests. pytest is installed at runtime so it is never shipped to prod.
+      - name: Run DAG tests inside Astro Runtime
+        run: |
+          docker run --rm \
+            -e AIRFLOW_HOME=/usr/local/airflow \
+            cdw-dag-tests \
+            bash -lc "pip install --quiet pytest && pytest"
