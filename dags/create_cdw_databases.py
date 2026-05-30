@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 import os
+from datetime import datetime, timedelta
+
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.sdk import DAG
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -11,6 +12,9 @@ with DAG(
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule=None,
+    catchup=False,
+    tags=["setup"],
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
     # Create schema "staging" in cdw database
@@ -24,19 +28,19 @@ with DAG(
     create_current = SQLExecuteQueryOperator(
         task_id="create_data_prep",
         conn_id="cdw-dev",
-        sql=f"create_current.sql",
+        sql="create_current.sql",
     )
 
     # Create schema "history" in cdw database
     create_history = SQLExecuteQueryOperator(
         task_id="create_history",
         conn_id="cdw-dev",
-        sql=f"create_history.sql",
+        sql="create_history.sql",
     )
 
     create_truncate_tables_function = SQLExecuteQueryOperator(
         task_id="create_truncate_tables_function",
         conn_id="cdw-dev",
-        sql=f"create_truncate_tables_function.sql",
+        sql="create_truncate_tables_function.sql",
     )
 create_staging >> create_current >> create_history >> create_truncate_tables_function
