@@ -1,8 +1,7 @@
-from datetime import datetime
-from airflow.sdk import DAG
-from airflow.sdk import BaseHook
-from airflow.sdk import Variable
+from datetime import datetime, timedelta
+
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG, BaseHook, Variable
 
 
 def print_var():
@@ -14,6 +13,11 @@ def print_var():
 
 
 with DAG(
-    "example_secrets_dag", start_date=datetime(2022, 1, 1), schedule=None
+    "example_secrets_dag",
+    start_date=datetime(2022, 1, 1),
+    schedule=None,
+    catchup=False,
+    tags=["utility"],
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
 ) as dag:
     test_task = PythonOperator(task_id="test-task", python_callable=print_var)

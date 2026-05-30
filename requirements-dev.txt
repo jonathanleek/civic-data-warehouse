@@ -1,0 +1,4 @@
+# Development / CI-only dependencies. These are NOT installed into the
+# Astro Runtime image (see requirements.txt for runtime deps).
+pytest>=8.0
+ruff==0.15.4

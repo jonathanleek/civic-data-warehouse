@@ -1,13 +1,14 @@
-import os
 import logging
+import os
+import re
+from io import StringIO
 from logging import Logger
+
+import numpy as np
+import pandas as pd
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.log import logging_mixin
-import pandas as pd
-import numpy as np
-from io import StringIO
-import re
 
 
 def download_from_s3(key: str, bucket_name: str, s3_conn_id: str):
@@ -22,8 +23,10 @@ def download_from_s3(key: str, bucket_name: str, s3_conn_id: str):
     logger.info(filename + " renamed to " + download_dest + key)
 
 
-def execute_query(query, conn_id, logger:Logger):
-    hook = PostgresHook(postgres_conn_id=conn_id, log_sql=(logger.level==logging.DEBUG))
+def execute_query(query, conn_id, logger: Logger):
+    hook = PostgresHook(
+        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
+    )
     hook.run(sql=query)
 
 
@@ -203,12 +206,10 @@ def populate_staging_table(bucket, s3_conn_id, postgres_conn, key):
         if df[column].dtype == object:
             df[column] = df[column].replace("'", "''", inplace=True)
     df.replace(np.nan, "None", inplace=True)
-    records = df.to_records(index=True)
 
     # Read table from S3 bucket
     filename = "/tmp/" + key
     tablename = filename.replace("/tmp/", "").replace(".csv", "").replace("-", "_")
-    columns = list(df.columns)
 
     # Build SQL code to insert data into table
     sqlQueryInsert = SQL_INSERT_STATEMENT_FROM_DATAFRAME(df, tablename)
