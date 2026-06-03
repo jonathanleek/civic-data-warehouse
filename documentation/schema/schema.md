@@ -8,6 +8,27 @@ The CDW data model is primarily a hub and spoke schema, with a hierarchical hub 
 
 Data is tied to the lowest level of the spine that is applicable. For example, an apartment building contains many addresses, so address ties to the Unit, not building. Because of this, each building must have at least one unit. In the case of a single unit building, the Unit table will contain the pertinent information for the entire building.
 
-Outlies and Special Cases
--------------------------
-In some cities, there are non-real-estate taxable properties that are assessed and mixed in with more traditional parcels like lots and buildings. In these cases, we will attempt to filter these records from the dataset.
+Parcel vs. assessment account
+-----------------------------
+A city's assessment file is keyed by *taxable account*, not strictly by *plot of land*. In St.
+Louis the assessor `handle` identifies the **plot of land (GIS footprint)**, while multiple
+*accounts* can share one `handle` — most commonly the individual units of a condominium, which sit
+on a single shared footprint. CDW resolves this to the spine as follows:
+
+- The plot of land (`handle`) becomes a **parcel**.
+- Each account sharing that footprint (e.g. each condo unit) becomes a **unit** beneath it.
+
+This is the intended mapping: the assessor's flat file conflates land and units, and the CDW spine
+separates them.
+
+Outliers and Special Cases — real-estate entities only
+------------------------------------------------------
+The CDW spine holds **real-estate entities only** (land, buildings, units). Some jurisdictions
+assess non-real-estate taxable items as "parcels" — e.g. billboards / outdoor advertising
+structures and other non-real-estate possessory interests. These are **filtered out** of CDW.
+
+Filtering source records is a deliberate, sanctioned **exception** to CDW's general rule of
+restructuring the city's data without altering it; it applies only to non-real-estate items, which
+fall outside the data model's scope. Excluded records are written to an exclusion log for
+transparency rather than silently dropped. (Note: parking lots/garages and condominium garage
+spaces are real estate and are retained.)

@@ -1,18 +1,18 @@
+import os
+from datetime import datetime, timedelta
+
+from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG
+
+from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_staging_directory, download_from_s3
+
 doc_md_DAG = """
-### govt_file_download
+### staging_table_prep
 
 This dag truncates any existing tables in the staging schema, the creates a table for any file found in the s3 bucket.
 """
-
-from datetime import datetime, timedelta
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
-from airflow.sdk import TaskGroup
-import os
-from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_staging_directory, download_from_s3
-from airflow.sdk import DAG
-from airflow.providers.standard.operators.python import PythonOperator
-
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 sql_dir = os.path.join(base_dir, "sql")
@@ -31,7 +31,10 @@ with DAG(
     start_date=datetime(2022, 12, 30),
     max_active_runs=1,
     schedule=None,
+    catchup=False,
     doc_md=doc_md_DAG,
+    tags=["staging"],
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
     template_searchpath=[sql_dir, "include/sql"],
 ) as dag:
     drop_and_create = SQLExecuteQueryOperator(

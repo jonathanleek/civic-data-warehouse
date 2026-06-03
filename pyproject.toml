@@ -1,0 +1,24 @@
+[tool.ruff]
+# Astro Runtime 3.1 ships Python 3.12.
+target-version = "py312"
+line-length = 88
+# Astronomer-provided example DAGs are vendored scaffolding; don't lint them.
+extend-exclude = ["dags/examples"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: import sorting.
+select = ["E", "F", "I", "W"]
+# The formatter owns line length; it intentionally leaves long strings,
+# comments, and URLs unwrapped, so E501 is disabled per Ruff's guidance.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Best-practice profiling tests intentionally set a module-level pytestmark
+# before importing the helpers they guard, which trips E402.
+"tests/test_dag_parse_profiling.py" = ["E402"]
+"tests/test_import_time_limit.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Quieter, deterministic output in CI.
+addopts = "-q"

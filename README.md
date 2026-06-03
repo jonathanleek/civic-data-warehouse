@@ -126,8 +126,47 @@ Project Structure
 | `Dockerfile` | Astro Runtime image (currently `3.1-13`, based on Airflow 3.x) |
 | `docker-compose.override.yml` | CDW-specific services (LocalStack, CDW Postgres) and Airflow connection env vars |
 | `requirements.txt` | Python dependencies |
+| `requirements-dev.txt` | Dev/CI-only dependencies (`pytest`, `ruff`) — not installed into the runtime image |
 | `packages.txt` | OS-level packages |
+| `pyproject.toml` | Ruff (lint/format) and pytest configuration |
 | `airflow_settings.yaml.example` | Example Airflow connections and variables config |
+
+Continuous Integration
+======================
+
+CI runs on every pull request and on pushes to `master` via GitHub Actions
+(`.github/workflows/ci.yml`). There is no automated deploy yet — CI is a quality
+gate only. It has three jobs:
+
+| Job | What it does |
+|-----|--------------|
+| **Lint (ruff)** | `ruff check` + `ruff format --check` over `dags/`, `include/`, and `tests/`. Config lives in `pyproject.toml`. |
+| **Static DAG policy tests** | Pure-AST best-practice checks (no Airflow needed) — hardcoded secrets, top-level execution, non-deterministic DAG IDs, dynamic `start_date`, subdags, sensor modes, etc. |
+| **DAG integrity tests (Astro Runtime)** | Builds the project image (validating the Docker build) and runs the full `pytest` suite inside it, including the `DagBag`-based tests (import errors, tags, `retries >= 2`, `catchup=False`). |
+
+The DAG tests are adapted from Astronomer's
+[best_practices_pytests](https://github.com/astronomer/best_practices_pytests).
+Thresholds (task counts, sensor intervals, import-time limits) are tunable via
+environment variables documented in that repo. Import-timing and parse-profiling
+tests are opt-in and skipped by default.
+
+### Running checks locally
+
+```bash
+pip install -r requirements-dev.txt
+
+# Lint and auto-format
+ruff check dags include tests
+ruff format dags include tests
+
+# Static (no-Airflow) best-practice tests
+pytest tests/test_no_hardcoded_secrets.py tests/test_no_top_level_execution.py  # ...etc
+
+# Full suite inside the Astro Runtime image (matches the CI runtime job)
+docker build -t cdw-dag-tests .
+docker run --rm -e AIRFLOW_HOME=/usr/local/airflow cdw-dag-tests \
+  bash -lc "pip install --quiet pytest && pytest"
+```
 
 Deployment
 ==========

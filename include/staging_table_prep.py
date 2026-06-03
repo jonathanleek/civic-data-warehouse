@@ -1,11 +1,13 @@
-import os
 import logging
+import os
+import re
+from io import StringIO
 from logging import Logger
+
+import pandas as pd
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.log import logging_mixin
-import pandas as pd
-import re
 
 
 staging_download_dest = "/tmp/stage/"
@@ -80,8 +82,10 @@ def populate_staging_table(postgres_conn, key):
     bulk_load_csv(sqlBulkCopy, filename, postgres_conn, logger)
 
 
-def execute_query(query, conn_id, logger:Logger):
-    hook = PostgresHook(postgres_conn_id=conn_id, log_sql=(logger.level==logging.DEBUG))
+def execute_query(query, conn_id, logger: Logger):
+    hook = PostgresHook(
+        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
+    )
     hook.run(sql=query)
 
 
@@ -233,4 +237,3 @@ def create_table_in_postgres(filename, postgres_conn):
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
     return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV HEADER"
-

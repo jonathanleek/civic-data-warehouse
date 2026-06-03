@@ -1,8 +1,9 @@
-from airflow.models import DagBag
-from datetime import datetime, timedelta
 import time
-from airflow.sdk import DAG
+from datetime import datetime, timedelta
+
+from airflow.models import DagBag
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG
 
 
 def survey_dag_parsing_times(**kwargs):
@@ -39,7 +40,7 @@ default_args = {
     "start_date": datetime(2023, 1, 1),
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 1,
+    "retries": 2,
     "retry_delay": timedelta(minutes=5),
 }
 
@@ -49,6 +50,7 @@ with DAG(
     description="A DAG to survey DAG parsing times",
     schedule=timedelta(days=1),
     catchup=False,
+    tags=["utility"],
 ) as dag:
     survey_task = PythonOperator(
         task_id="survey_dag_parsing_times_task",
