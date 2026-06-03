@@ -1,15 +1,28 @@
+import csv
 import logging
 import os
 import re
 import shutil
 
-import pandas as pd
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 logger = logging.getLogger()
 staging_download_dest = "/tmp/stage/"
 prefix_delimiter = "/"
+
+# Identifiers cannot be passed as bound parameters, so any value interpolated
+# into a DDL/COPY statement must match this strict allowlist. The clean_* helpers
+# below are total: they always emit a conforming identifier, so this pattern now
+# serves as a defense-in-depth assertion (it should never fail) rather than an
+# input gate that rejects awkward-but-legitimate source names.
+SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_]+$")
+
+# Postgres silently truncates identifiers to NAMEDATALEN - 1 bytes. Names must
+# be cut to this length BEFORE deduplication, or two long names that differ
+# only past this point dedupe as "unique" and then collide inside Postgres
+# ("column specified more than once"). Cleaned names are ASCII, so chars == bytes.
+PG_MAX_IDENTIFIER_LENGTH = 63
 
 
 def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
@@ -96,18 +109,30 @@ def create_staging_table(postgres_conn_id, key):
 def populate_staging_table(postgres_conn, key):
 
     filename = staging_download_dest + key.split(prefix_delimiter)[-1]
-    tablename = (
-        filename.replace(staging_download_dest, "")
-        .replace(".csv", "")
-        .replace("-", "_")
-    )
+    tablename = staging_table_name(key)
     logger.info(f"Attempting to import file {filename} into table {tablename}")
 
-    df = pd.read_csv(filename, dtype=str)
+    columns = read_header_columns(filename)
+    # Defense in depth: clean_column_names always returns conforming names.
+    for column in columns:
+        if not SAFE_IDENTIFIER.match(column):
+            raise ValueError(f"Unsafe column name {column!r} in {key}")
+    column_list = ", ".join(columns)
 
-    sqlBulkCopy = BULK_COPY_STATEMENT_FROM_DATAFRAME(df, tablename)
-    logger.debug(sqlBulkCopy)
-    bulk_load_csv(sqlBulkCopy, filename, postgres_conn)
+    # Bulk-load via COPY: libpq streams the file so memory stays flat
+    # regardless of size, and Postgres handles CSV quoting/escaping. COPY maps
+    # CSV fields to the column list POSITIONALLY — HEADER true only discards
+    # the first record without comparing names (and HEADER MATCH cannot be
+    # used, since cleaned identifiers differ from the raw header fields). The
+    # load is correct only because this column list comes from the same
+    # read_header_columns parse the create step used on the same file.
+    # The unquoted table name folds to lower case to match CREATE TABLE.
+    copy_sql = (
+        f"COPY cdw.staging.{tablename} ({column_list}) "
+        "FROM STDIN WITH (FORMAT CSV, HEADER true)"
+    )
+    logger.debug(copy_sql)
+    bulk_load_csv(copy_sql, filename, postgres_conn)
 
 
 def execute_query(query, conn_id):
@@ -121,9 +146,22 @@ def bulk_load_csv(bulkCopySql, filename, conn_id):
 
 
 def clean_column_name(column_name):
-    # Convert to lowercase, replace spaces with underscores, and remove special characters
+    # Source headers are schema we cannot ask upstream to change, so coerce any
+    # name into a legal identifier instead of rejecting it. Lowercase, turn
+    # spaces into underscores, then drop everything that is not an ASCII
+    # identifier character (this strips punctuation and non-ASCII letters such
+    # as accented characters).
     column_name = column_name.lower().replace(" ", "_")
-    column_name = re.sub(r"\W", "", column_name)  # Remove non-alphanumeric characters
+    column_name = re.sub(r"[^a-z0-9_]", "", column_name)
+
+    # A header of only stripped characters leaves nothing behind; give it a base
+    # name so the column still loads (callers dedupe collisions).
+    if not column_name:
+        column_name = "column"
+
+    # Unquoted identifiers cannot start with a digit.
+    if column_name[0].isdigit():
+        column_name = "_" + column_name
 
     # Check for reserved keywords and rename if necessary
     reserved_keywords = {
@@ -230,28 +268,97 @@ def clean_column_name(column_name):
     if column_name in reserved_keywords:
         column_name += "_"
 
-    return column_name
+    # Truncate to what Postgres will actually store, so callers dedupe the
+    # name Postgres sees rather than a longer one it would silently cut.
+    return column_name[:PG_MAX_IDENTIFIER_LENGTH]
+
+
+def clean_column_names(raw_columns):
+    """Clean a full list of source headers, resolving collisions deterministically.
+
+    Two distinct headers can clean to the same identifier (e.g. "Area" and
+    "area#", or several blank headers all becoming "column"). Duplicates would
+    break CREATE TABLE and silently corrupt a COPY column mapping, so the second
+    and later occurrences get a numeric suffix. The order of raw_columns drives
+    the suffixes, so create and populate must clean the same header sequence to
+    agree on names.
+    """
+    cleaned = []
+    seen = set()
+    for raw in raw_columns:
+        name = clean_column_name(raw)
+        candidate = name
+        suffix = 1
+        while candidate in seen:
+            # The suffix must fit within the identifier limit too, or the
+            # disambiguation gets truncated away and the collision returns.
+            tag = f"_{suffix}"
+            candidate = name[: PG_MAX_IDENTIFIER_LENGTH - len(tag)] + tag
+            suffix += 1
+        seen.add(candidate)
+        cleaned.append(candidate)
+    return cleaned
+
+
+def read_header_columns(filename):
+    """Read the file's first CSV record and clean it into column names.
+
+    Uses the csv module rather than pandas so the header is the first physical
+    record — exactly the line COPY ... HEADER true discards. pandas skips blank
+    leading lines, which would desynchronize the two: pandas names the columns
+    from line 2 while COPY discards line 1 and loads the real header as data.
+
+    Both the create and populate steps must call this on the same file so
+    CREATE TABLE and the COPY column list come from one parse.
+    """
+    with open(filename, newline="") as f:
+        header = next(csv.reader(f), None)
+    if not header:
+        raise ValueError(f"No header row found in {filename}")
+    return clean_column_names(header)
+
+
+def clean_table_name(key):
+    """Coerce an S3 key into a legal staging table identifier.
+
+    File names, like schema, are not something we can ask upstream to change, so
+    this mirrors clean_column_name: never reject, always emit a usable name.
+    Used by both the create and populate steps so they target the same table.
+    """
+    # Lowercase first so ".CSV" is stripped too, and removesuffix so the
+    # extension is only removed from the end, not from mid-name occurrences.
+    name = key.lower().removesuffix(".csv").replace("-", "_")
+    name = re.sub(r"[^a-z0-9_]", "", name)
+    if not name:
+        name = "table"
+    if name[0].isdigit():
+        name = "_" + name
+    return name[:PG_MAX_IDENTIFIER_LENGTH]
 
 
 def create_table_in_postgres(filename, postgres_conn):
+    tablename = clean_table_name(filename.replace(staging_download_dest, ""))
 
-    tablename = (
-        filename.replace(staging_download_dest, "")
-        .replace(".csv", "")
-        .replace("-", "_")
-    )
-
-    df = pd.read_csv(filename, dtype=str)
-
-    columns = [clean_column_name(col) for col in df.columns]
+    columns = read_header_columns(filename)
     logger.info("List of columns:")
     for col_index, column in enumerate(columns):
         logger.info(f"column index {col_index} is '{column}'")
 
-    # Build SQL code to drop table if exists and create table
-    sqlQueryCreate = "CREATE TABLE IF NOT EXISTS CDW.STAGING." + tablename + " ("
-    columns = [col + " VARCHAR" for col in columns]
-    sqlQueryCreate += ", ".join(columns)
+    # Defense in depth: clean_table_name always returns a conforming identifier,
+    # so a mismatch here means a bug in the cleaner, not bad input.
+    if not SAFE_IDENTIFIER.match(tablename):
+        raise ValueError(f"Refusing to build DDL for unsafe table name {tablename!r}")
+
+    # The DAG's first task resets staging wholesale (DROP SCHEMA ... CASCADE in
+    # include/sql/drop_and_create_staging.sql), so in a normal run this table
+    # never pre-exists. The DROP here is retry-safety only: a re-run of this
+    # task must not inherit a half-created table from a failed attempt.
+    sqlQueryCreate = f"DROP TABLE IF EXISTS CDW.STAGING.{tablename};\n"
+    sqlQueryCreate += "CREATE TABLE CDW.STAGING." + tablename + " (\n"
+
+    # Staging is a raw landing zone: use TEXT so source values are never
+    # truncated or rejected for exceeding a fixed width.
+    sqlQueryCreate += ",\n".join(f"{column} TEXT" for column in columns)
     sqlQueryCreate += ");"
     logger.debug(sqlQueryCreate)
 
@@ -259,12 +366,16 @@ def create_table_in_postgres(filename, postgres_conn):
     execute_query(sqlQueryCreate, postgres_conn)
 
 
-def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
-    cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
-    return (
-        "COPY CDW.STAGING."
-        + TARGET
-        + " ("
-        + ", ".join(cleaned_columns)
-        + ") FROM STDIN WITH CSV HEADER"
-    )
+def staging_table_name(key: str) -> str:
+    """Derive the staging table name from an S3 key.
+
+    Mirrors the transformation in create_table_in_postgres so the populate step
+    targets the same table the create step built.
+    """
+    tablename = clean_table_name(key.split(prefix_delimiter)[-1])
+    # Defense in depth: clean_table_name always returns a conforming identifier.
+    if not SAFE_IDENTIFIER.match(tablename):
+        raise ValueError(
+            f"Refusing to build COPY for unsafe table name {tablename!r} (from key {key!r})"
+        )
+    return tablename
