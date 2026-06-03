@@ -6,7 +6,12 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG
 
-from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_empty_staging_directory, download_from_s3
+from include.staging_table_prep import (
+    create_staging_table,
+    download_from_s3,
+    ensure_empty_staging_directory,
+    populate_staging_table,
+)
 
 doc_md_DAG = """
 ### staging_table_prep
@@ -40,12 +45,12 @@ with DAG(
     drop_and_create = SQLExecuteQueryOperator(
         task_id="drop_and_create_staging",
         conn_id="cdw-dev",
-        sql=f"drop_and_create_staging.sql",
+        sql="drop_and_create_staging.sql",
     )
 
     ensure_staging_directory_op = PythonOperator(
         task_id="ensure_empty_staging_directory",
-        python_callable=ensure_empty_staging_directory
+        python_callable=ensure_empty_staging_directory,
     )
 
     # get list of files in s3

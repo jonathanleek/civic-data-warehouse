@@ -2,14 +2,12 @@ import logging
 import os
 import re
 import shutil
-from io import StringIO
 from logging import Logger
 
 import pandas as pd
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.log import logging_mixin
-
 
 staging_download_dest = "/tmp/stage/"
 
@@ -18,13 +16,15 @@ def ensure_empty_staging_directory():
     logger = logging_mixin.LoggingMixin().logger()
 
     logger.info(f"Preparing staging directory '{staging_download_dest}'")
-    
-    # If the path exists, we want to 
+
+    # If the path exists, we want to
     if os.path.exists(staging_download_dest):
-        logger.info(f"Staging directory {staging_download_dest} exists - clearing and deleting")
+        logger.info(
+            f"Staging directory {staging_download_dest} exists - clearing and deleting"
+        )
         shutil.rmtree(staging_download_dest)
         logger.info("Staging directory removed")
-        
+
     if not os.path.exists(staging_download_dest):
         logger.info(f"Creating staging directory {staging_download_dest}")
         os.makedirs(staging_download_dest)
@@ -36,18 +36,16 @@ def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
     logger.info(f"Using tmp directory '{staging_download_dest}'")
     dest_file = os.path.join(staging_download_dest, key)
     logger.info(f"Downloading file '{dest_file}'")
-    
-    # Using S3Hook.download_file() seems to be async for me, but I'm 
+
+    # Using S3Hook.download_file() seems to be async for me, but I'm
     #  unable to see what and how. All I can see is that I get occasional
     #  zero-byte files. So, right now, I'm using the underlying
     #  connection's download_file() call, which should be synchronous and
     #  therefore fully block until the file download completes.
-    S3Hook(aws_conn_id=s3_conn_id) \
-        .get_conn() \
-        .download_file(bucket_name, key, dest_file)
+    S3Hook(aws_conn_id=s3_conn_id).get_conn().download_file(bucket_name, key, dest_file)
 
     logger.info(f"{dest_file} downloaded")
-    
+
 
 def create_staging_table(postgres_conn_id, key):
     logger = logging_mixin.LoggingMixin().logger()
@@ -60,7 +58,11 @@ def populate_staging_table(postgres_conn, key):
     logger = logging_mixin.LoggingMixin().logger()
 
     filename = staging_download_dest + key
-    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
+    tablename = (
+        filename.replace(staging_download_dest, "")
+        .replace(".csv", "")
+        .replace("-", "_")
+    )
     logger.info(f"Attempting to import file {filename} into table {tablename}")
 
     df = pd.read_csv(filename, dtype=str)
@@ -77,8 +79,10 @@ def execute_query(query, conn_id, logger: Logger):
     hook.run(sql=query)
 
 
-def bulk_load_csv(bulkCopySql, filename, conn_id, logger:Logger):
-    hook = PostgresHook(postgres_conn_id=conn_id, log_sql=(logger.level==logging.DEBUG))
+def bulk_load_csv(bulkCopySql, filename, conn_id, logger: Logger):
+    hook = PostgresHook(
+        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
+    )
     hook.copy_expert(sql=bulkCopySql, filename=filename)
 
 
@@ -197,13 +201,14 @@ def clean_column_name(column_name):
 
 def create_table_in_postgres(filename, postgres_conn):
     logger = logging_mixin.LoggingMixin().logger()
-    
-    tablename = filename.replace(staging_download_dest, "").replace(".csv", "").replace("-", "_")
 
-    df = pd.read_csv(
-            filename,
-            dtype=str
-        )
+    tablename = (
+        filename.replace(staging_download_dest, "")
+        .replace(".csv", "")
+        .replace("-", "_")
+    )
+
+    df = pd.read_csv(filename, dtype=str)
 
     columns = [clean_column_name(col) for col in df.columns]
     logger.info("List of columns:")
@@ -221,7 +226,12 @@ def create_table_in_postgres(filename, postgres_conn):
     execute_query(sqlQueryCreate, postgres_conn, logger)
 
 
-
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
     cleaned_columns = [clean_column_name(col) for col in SOURCE.columns]
-    return "COPY CDW.STAGING." + TARGET + " (" + ", ".join(cleaned_columns) + ") FROM STDIN WITH CSV HEADER"
+    return (
+        "COPY CDW.STAGING."
+        + TARGET
+        + " ("
+        + ", ".join(cleaned_columns)
+        + ") FROM STDIN WITH CSV HEADER"
+    )
