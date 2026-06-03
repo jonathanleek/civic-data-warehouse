@@ -83,6 +83,8 @@ Identity & crosswalk
 - Parcel `cdw_id` = `840.29510.<parcel_seq>.0000.00000`, where `parcel_seq` is minted from `handle`
   via `crosswalk.parcel_xref` (the authoritative per-region registry). `handle` is preserved in
   `current.municipal_parcel_id_mapping`.
+- `crosswalk.parcel_xref` is persistent pipeline state. It survives current-schema rebuilds so an
+  existing native `handle` keeps the same `parcel_seq` on every run.
 - Building = `…<bldgnum:4>.00000`; unit = `…<bldgnum:4>.<unitseq:5>`. Condo buildings synthesize
   `…0001.00000`; condo units order deterministically by assessor parcel number.
 - Non-spine surrogates are namespaced TEXT (`840.29510.<entity>.<seq>`). See
