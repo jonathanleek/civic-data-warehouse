@@ -1,5 +1,6 @@
 wget
 apache-airflow-providers-amazon
+# Provides psycopg2-binary for Postgres hooks and direct psycopg2 imports.
 apache-airflow-providers-postgres
 apache-airflow-providers-common-sql
 apache-airflow-providers-standard
@@ -8,6 +9,3 @@ xlrd==2.0.2
 astronomer-cosmos[dbt-postgres]>=1.4.0
 usaddress
 splink>=4,<5
-streamlit
-streamlit-shortcuts
-psycopg2-binary

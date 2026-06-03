@@ -125,10 +125,12 @@ set review_decision = excluded.review_decision,
     reviewed_at = now();
 ```
 
+For this draft, the Streamlit review apps are treated as local/bootstrap review tooling rather than Airflow runtime code. They live under `tools/owner_review/` and their dependencies are kept in `requirements-dev.txt`.
+
 The possible-match review app can be run locally with:
 
 ```bash
-streamlit run apps/owner_match_review.py
+streamlit run tools/owner_review/owner_match_review.py
 ```
 
 It connects to the local CDW Postgres service by default (`localhost:5433`, database `cdw`) and writes review decisions to `current.prcl_owner_match_reviews`.
@@ -150,6 +152,7 @@ Project Structure
 |------|-------------|
 | `dags/` | Airflow DAG definitions |
 | `include/` | Supporting Python modules, SQL scripts, and config files (e.g., `gov_files.json`, `create_current.sql`) |
+| `tools/` | Local development and review tooling outside the Airflow runtime path |
 | `documentation/` | CDW data model schema docs and legacy ETL logic analysis |
 | `plugins/` | Custom Airflow plugins |
 | `tests/` | Tests |
