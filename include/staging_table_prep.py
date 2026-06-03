@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shutil
 from io import StringIO
 from logging import Logger
 
@@ -13,27 +14,19 @@ from airflow.utils.log import logging_mixin
 staging_download_dest = "/tmp/stage/"
 
 
-def ensure_staging_directory():
+def ensure_empty_staging_directory():
     logger = logging_mixin.LoggingMixin().logger()
 
     logger.info(f"Preparing staging directory '{staging_download_dest}'")
     
+    # If the path exists, we want to 
     if os.path.exists(staging_download_dest):
-        logger.info(f"clearing all files in {staging_download_dest}")
-        for root, dirs, files in os.walk(staging_download_dest):
-            for file in files:
-                file_to_remove = os.path.join(root, file)
-                logger.debug(f"removing file {file_to_remove}")
-                os.remove(file_to_remove)
-        for root, dirs, files in os.walk(staging_download_dest):
-            for dir in dirs:
-                subdir_to_remove = os.path.join(root, dir)
-                logger.debug(f"removing subdirectory {subdir_to_remove}")
-                os.rmdir(subdir_to_remove)
-        logger.info("tmp directory cleared")
+        logger.info(f"Staging directory {staging_download_dest} exists - clearing and deleting")
+        shutil.rmtree(staging_download_dest)
+        logger.info("Staging directory removed")
         
     if not os.path.exists(staging_download_dest):
-        logger.info(f"Creating directory {staging_download_dest}")
+        logger.info(f"Creating staging directory {staging_download_dest}")
         os.makedirs(staging_download_dest)
 
 
@@ -52,11 +45,6 @@ def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
     S3Hook(aws_conn_id=s3_conn_id) \
         .get_conn() \
         .download_file(bucket_name, key, dest_file)
-
-    # If we get another download error, throw here to block all further
-    #  processing.
-    if os.path.getsize(dest_file) == 0:
-        raise Exception(f"Downloaded file {dest_file} is zero bytes")
 
     logger.info(f"{dest_file} downloaded")
     
