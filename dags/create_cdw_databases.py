@@ -24,6 +24,13 @@ with DAG(
         sql="create_staging.sql",
     )
 
+    # Create schema "crosswalk" in cdw database
+    create_crosswalk = SQLExecuteQueryOperator(
+        task_id="create_crosswalk",
+        conn_id="cdw-dev",
+        sql="create_crosswalk.sql",
+    )
+
     # Create schema "current" in cdw database
     create_current = SQLExecuteQueryOperator(
         task_id="create_data_prep",
@@ -43,4 +50,10 @@ with DAG(
         conn_id="cdw-dev",
         sql="create_truncate_tables_function.sql",
     )
-create_staging >> create_current >> create_history >> create_truncate_tables_function
+(
+    create_staging
+    >> create_crosswalk
+    >> create_current
+    >> create_history
+    >> create_truncate_tables_function
+)

@@ -57,6 +57,7 @@ CDW PostgreSQL (Data Warehouse)
 A dedicated Postgres 15 instance that serves as the **data warehouse** itself. This is separate from Airflow's internal metadata database. It contains three schemas:
 
 - **`staging`** — raw data loaded directly from S3 CSVs
+- **`crosswalk`** — persistent CDW_ID registries such as parcel handle → parcel sequence mappings
 - **`current`** — normalized tables (parcel, building, unit, address, legal_entity, etc.)
 - **`history`** — historical snapshots of the current schema
 
@@ -74,9 +75,9 @@ All DAGs are manually triggered (`schedule=None`) unless noted otherwise. They s
 
 **File:** `dags/create_cdw_databases.py`
 
-Creates the three CDW schemas (`staging`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG.
+Creates the CDW schemas (`staging`, `crosswalk`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG. The `crosswalk` schema is persistent ID registry state and should not be truncated during normal rebuilds.
 
-**Task order:** `create_staging` > `create_data_prep` > `create_history` > `create_truncate_tables_function`
+**Task order:** `create_staging` > `create_crosswalk` > `create_data_prep` > `create_history` > `create_truncate_tables_function`
 
 ### 2. `govt_file_download` — Data Ingestion
 
@@ -109,7 +110,7 @@ Truncates the `staging` schema, lists all files in the S3 landing zone, then dyn
 
 | DAG | File | Purpose |
 |-----|------|---------|
-| `sql_test` | `dags/sql_test.py` | Connectivity check — verifies the `staging`, `current`, and `history` schemas exist in the CDW database. |
+| `sql_test` | `dags/sql_test.py` | Connectivity check — verifies the `staging`, `crosswalk`, `current`, and `history` schemas exist in the CDW database. |
 | `example_secrets_dag` | `dags/secret_manager_test.py` | Tests secrets backend integration by retrieving an Airflow Variable and the `cdw-dev` connection. |
 | `survey_dag_parsing_times` | `dags/dag_parsing_survey.py` | Profiles DAG parse times. **Only DAG with a schedule** (daily). |
 
