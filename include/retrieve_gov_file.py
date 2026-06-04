@@ -1,12 +1,18 @@
-import subprocess, os, datetime, logging
-import shutil, wget
-import pandas
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+import datetime
+import logging
+import os
+import shutil
+import subprocess
 from zipfile import ZipFile
 
-logger = logging.getLogger(__name__)
+import pandas
+import wget
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+logger = logging.getLogger()
 prefix_separator = "_"
 delimiter = "/"
+
 
 def _csv_passes_strict_parse(path: str) -> bool:
     """
@@ -29,7 +35,7 @@ def _csv_passes_strict_parse(path: str) -> bool:
             e,
         )
         return False
-    
+
 
 def create_s3_prefix():
 
@@ -37,23 +43,27 @@ def create_s3_prefix():
 
     # KRT note 04/20/26 :
     # I tend to dislike very dense interpolated strings. Settings things up with a joined array allows
-    #   vertical stacking of the parameters, which I think looks cleaner. Feel free to change this if 
+    #   vertical stacking of the parameters, which I think looks cleaner. Feel free to change this if
     #   you find it unclear.
-    cur_time_iter = [f'{cur_time.year:04d}', 
-                     f'{cur_time.month:02d}', 
-                     f'{cur_time.day:02d}', 
-                     f'{cur_time.hour:02d}', 
-                     f'{cur_time.minute:02d}', 
-                     f'{cur_time.second:02d}']
-    
+    cur_time_iter = [
+        f"{cur_time.year:04d}",
+        f"{cur_time.month:02d}",
+        f"{cur_time.day:02d}",
+        f"{cur_time.hour:02d}",
+        f"{cur_time.minute:02d}",
+        f"{cur_time.second:02d}",
+    ]
+
     s3_prefix = prefix_separator.join(cur_time_iter)
 
     logger.info("Using s3 prefix '%s'", s3_prefix)
 
-    return s3_prefix;
+    return s3_prefix
 
 
-def retrieve_gov_file(filename, file_url, bucket, s3_prefix, s3_conn_id, task_id, base_prep_dir):
+def retrieve_gov_file(
+    filename, file_url, bucket, s3_prefix, s3_conn_id, task_id, base_prep_dir
+):
     """
     Downloads a single file to a temporary directory, recursively unzips it, converts .mdb files if needed,
      and uploads it to s3
@@ -190,6 +200,7 @@ def export_xls_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     logger.info(f"loaded {prepped_file} and written all data to {full_csv_filename}")
     upload_to_s3(bucket, s3_prefix, s3_conn_id, csv_filename, prep_dir)
 
+
 def export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Strip all tables in an .mdb file into separate .csv files. Upload the resulting .csv files to S3.
@@ -227,11 +238,11 @@ def export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
                     subprocess.check_call(["mdb-export", prepped_file, table], stdout=f)
                 except subprocess.CalledProcessError as e:
                     raise RuntimeError(
-                                "command '{}' return with error (code {}): {}".format(
-                                    e.cmd, e.returncode, e.output
-                                )
-                            )
-                
+                        "command '{}' return with error (code {}): {}".format(
+                            e.cmd, e.returncode, e.output
+                        )
+                    )
+
             upload_to_s3(bucket, s3_prefix, s3_conn_id, export_file, prep_dir)
 
 

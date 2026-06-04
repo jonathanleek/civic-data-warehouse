@@ -4,7 +4,11 @@ from datetime import datetime, timedelta
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG, task_group
 
-from include.retrieve_gov_file import retrieve_gov_file, clear_files_and_subdirs, create_s3_prefix
+from include.retrieve_gov_file import (
+    clear_files_and_subdirs,
+    create_s3_prefix,
+    retrieve_gov_file,
+)
 
 doc_md_DAG = """
 ### govt_file_download
@@ -55,7 +59,7 @@ with DAG(
                 )
 
     s3_prefix_task = PythonOperator(
-        task_id='s3_prefix_task',
+        task_id="s3_prefix_task",
         python_callable=create_s3_prefix,
     )
 
@@ -65,8 +69,4 @@ with DAG(
         op_kwargs={"dir_to_clear": prep_directory},
     )
 
-    (
-        s3_prefix_task
-        >> upload_all_files()
-        >> cleanup_task
-    )
+    (s3_prefix_task >> upload_all_files() >> cleanup_task)

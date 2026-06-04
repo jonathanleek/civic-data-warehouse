@@ -6,8 +6,13 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG
 
-from include.staging_table_prep import create_staging_table, populate_staging_table, ensure_empty_staging_directory, download_from_s3, get_latest_s3_prefix
-
+from include.staging_table_prep import (
+    create_staging_table,
+    download_from_s3,
+    ensure_empty_staging_directory,
+    get_latest_s3_prefix,
+    populate_staging_table,
+)
 
 doc_md_DAG = """
 ### staging_table_prep
@@ -56,15 +61,15 @@ with DAG(
         op_kwargs={
             "bucket": BUCKET,
             "s3_conn_id": "s3_datalake",
-        }
+        },
     )
 
     # get list of files in s3
     list_s3_objects = S3ListOperator(
-        bucket=BUCKET, 
+        bucket=BUCKET,
         prefix=get_latest_s3_prefix_op.output,
-        task_id="S3_List", 
-        aws_conn_id="s3_datalake"
+        task_id="S3_List",
+        aws_conn_id="s3_datalake",
     )
 
     prepare_list = PythonOperator(
