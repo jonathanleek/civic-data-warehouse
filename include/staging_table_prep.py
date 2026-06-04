@@ -14,12 +14,27 @@ prefix_delimiter = "/"
 
 
 def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
+    """
+    This will grab the latest 'prefix', or S3 directory, from the S3 connection and bucket name passed in.
+
+    We assume that the prefixes are time strings which can be sorted. Thus we take the latest one.
+
+    There are no checks to see if the prefix is valid! This can cause many issues, especially if the state of
+     the directory is invalid.
+
+    Args:
+        bucket: S3 bucket name
+        s3_conn_id: S3 connection string
+
+    Returns:
+        Name of the latest prefix in the S3 bucket
+    """
 
     prefix_list: list[str] = S3Hook(aws_conn_id=s3_conn_id).list_prefixes(
         bucket_name=bucket, delimiter=prefix_delimiter
     )
 
-    if prefix_list is None or prefix_list.count == 0:
+    if not prefix_list:
         logger.warning("No prefixes found. Assuming files are in root of bucket.")
         return ""
 
