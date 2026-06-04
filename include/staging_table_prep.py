@@ -88,7 +88,6 @@ def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
 
 
 def create_staging_table(postgres_conn_id, key):
-
     filename = staging_download_dest + key.split(prefix_delimiter)[-1]
     logger.info("Attempting to create table for " + filename)
     create_table_in_postgres(filename=filename, postgres_conn=postgres_conn_id)
