@@ -2,18 +2,49 @@ import logging
 import os
 import re
 import shutil
-from logging import Logger
 
 import pandas as pd
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.log import logging_mixin
 
+logger = logging.getLogger()
 staging_download_dest = "/tmp/stage/"
+prefix_delimiter = "/"
+
+
+def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
+    """
+    This will grab the latest 'prefix', or S3 directory, from the S3 connection and bucket name passed in.
+
+    We assume that the prefixes are time strings which can be sorted. Thus we take the latest one.
+
+    There are no checks to see if the prefix is valid! This can cause many issues, especially if the state of
+     the directory is invalid.
+
+    Args:
+        bucket: S3 bucket name
+        s3_conn_id: S3 connection string
+
+    Returns:
+        Name of the latest prefix in the S3 bucket
+    """
+
+    prefix_list: list[str] = S3Hook(aws_conn_id=s3_conn_id).list_prefixes(
+        bucket_name=bucket, delimiter=prefix_delimiter
+    )
+
+    if not prefix_list:
+        logger.warning("No prefixes found. Assuming files are in root of bucket.")
+        return ""
+
+    prefix_list.sort(reverse=True)
+
+    logger.info("Using prefix %s", prefix_list[0])
+
+    return prefix_list[0]
 
 
 def ensure_empty_staging_directory():
-    logger = logging_mixin.LoggingMixin().logger()
 
     logger.info(f"Preparing staging directory '{staging_download_dest}'")
 
@@ -39,12 +70,13 @@ def ensure_empty_staging_directory():
 
 
 def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
-    logger = logging_mixin.LoggingMixin().logger()
 
     logger.info(f"Using tmp directory '{staging_download_dest}'")
-    dest_file = os.path.join(staging_download_dest, key)
+    filename_only = key.split(prefix_delimiter)[-1]
+    dest_file = os.path.join(staging_download_dest, filename_only)
     logger.info(f"Downloading file '{dest_file}'")
 
+    # KRT note 04/06/26 :
     # Using S3Hook.download_file() seems to be async for me, but I'm
     #  unable to see what and how. All I can see is that I get occasional
     #  zero-byte files. So, right now, I'm using the underlying
@@ -56,16 +88,14 @@ def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
 
 
 def create_staging_table(postgres_conn_id, key):
-    logger = logging_mixin.LoggingMixin().logger()
-    filename = staging_download_dest + key
+    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
     logger.info("Attempting to create table for " + filename)
     create_table_in_postgres(filename=filename, postgres_conn=postgres_conn_id)
 
 
 def populate_staging_table(postgres_conn, key):
-    logger = logging_mixin.LoggingMixin().logger()
 
-    filename = staging_download_dest + key
+    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
     tablename = (
         filename.replace(staging_download_dest, "")
         .replace(".csv", "")
@@ -77,20 +107,16 @@ def populate_staging_table(postgres_conn, key):
 
     sqlBulkCopy = BULK_COPY_STATEMENT_FROM_DATAFRAME(df, tablename)
     logger.debug(sqlBulkCopy)
-    bulk_load_csv(sqlBulkCopy, filename, postgres_conn, logger)
+    bulk_load_csv(sqlBulkCopy, filename, postgres_conn)
 
 
-def execute_query(query, conn_id, logger: Logger):
-    hook = PostgresHook(
-        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
-    )
+def execute_query(query, conn_id):
+    hook = PostgresHook(postgres_conn_id=conn_id)
     hook.run(sql=query)
 
 
-def bulk_load_csv(bulkCopySql, filename, conn_id, logger: Logger):
-    hook = PostgresHook(
-        postgres_conn_id=conn_id, log_sql=(logger.level == logging.DEBUG)
-    )
+def bulk_load_csv(bulkCopySql, filename, conn_id):
+    hook = PostgresHook(postgres_conn_id=conn_id)
     hook.copy_expert(sql=bulkCopySql, filename=filename)
 
 
@@ -208,7 +234,6 @@ def clean_column_name(column_name):
 
 
 def create_table_in_postgres(filename, postgres_conn):
-    logger = logging_mixin.LoggingMixin().logger()
 
     tablename = (
         filename.replace(staging_download_dest, "")
@@ -231,7 +256,7 @@ def create_table_in_postgres(filename, postgres_conn):
     logger.debug(sqlQueryCreate)
 
     # Run sqlQueryCreate in Postgres
-    execute_query(sqlQueryCreate, postgres_conn, logger)
+    execute_query(sqlQueryCreate, postgres_conn)
 
 
 def BULK_COPY_STATEMENT_FROM_DATAFRAME(SOURCE, TARGET):
