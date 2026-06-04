@@ -1,3 +1,15 @@
+import json
+from datetime import datetime, timedelta
+
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG, task_group
+
+from include.retrieve_gov_file import (
+    clear_files_and_subdirs,
+    create_s3_prefix,
+    retrieve_gov_file,
+)
+
 doc_md_DAG = """
 ### govt_file_download
 
@@ -8,13 +20,6 @@ Currently converts the following file formats. All others are loaded to s3 after
 
 
 """
-
-
-import json
-from datetime import datetime, timedelta
-from airflow.sdk import DAG, task_group
-from airflow.providers.standard.operators.python import PythonOperator
-from include.retrieve_gov_file import retrieve_gov_file, clear_files_and_subdirs, create_s3_prefix
 
 gov_files = "include/gov_files.json"
 BUCKET = "civic-data-warehouse-lz"
@@ -28,6 +33,7 @@ with DAG(
     start_date=datetime(2022, 6, 24),
     catchup=False,
     doc_md=doc_md_DAG,
+    tags=["ingestion"],
     default_args={"retries": 3, "retry_delay": timedelta(minutes=1)},
 ) as dag:
 
@@ -36,8 +42,8 @@ with DAG(
         with open(gov_files, "r") as read_file:
             gov_file_data = json.load(read_file)
             for file in gov_file_data["gov_files"]:
-                task_id="files_to_s3_" + file["file_name"]
-                upload_file = PythonOperator(
+                task_id = "files_to_s3_" + file["file_name"]
+                PythonOperator(
                     task_id=task_id,
                     python_callable=retrieve_gov_file,
                     op_kwargs={
@@ -47,25 +53,19 @@ with DAG(
                         "s3_prefix": s3_prefix_task.output,
                         "s3_conn_id": "s3_datalake",
                         "task_id": task_id,
-                        "base_prep_dir": prep_directory
+                        "base_prep_dir": prep_directory,
                     },
                 )
 
     s3_prefix_task = PythonOperator(
-        task_id='s3_prefix_task',
+        task_id="s3_prefix_task",
         python_callable=create_s3_prefix,
     )
 
     cleanup_task = PythonOperator(
-        task_id='clear_tmp_directory',
+        task_id="clear_tmp_directory",
         python_callable=clear_files_and_subdirs,
-        op_kwargs={
-            "dir_to_clear": prep_directory
-        },
+        op_kwargs={"dir_to_clear": prep_directory},
     )
 
-    (
-        s3_prefix_task
-        >> upload_all_files()
-        >> cleanup_task
-    )
+    (s3_prefix_task >> upload_all_files() >> cleanup_task)

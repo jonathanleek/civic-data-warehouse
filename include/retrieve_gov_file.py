@@ -1,12 +1,18 @@
-import subprocess, os, datetime, logging
-import shutil, wget
-import pandas
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+import datetime
+import logging
+import os
+import shutil
+import subprocess
 from zipfile import ZipFile
+
+import pandas
+import wget
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 logger = logging.getLogger(__name__)
 prefix_separator = "_"
 delimiter = "/"
+
 
 def _csv_passes_strict_parse(path: str) -> bool:
     """
@@ -29,7 +35,7 @@ def _csv_passes_strict_parse(path: str) -> bool:
             e,
         )
         return False
-    
+
 
 def create_s3_prefix():
 
@@ -37,25 +43,29 @@ def create_s3_prefix():
 
     # KRT note 04/20/26 :
     # I tend to dislike very dense interpolated strings. Settings things up with a joined array allows
-    #   vertical stacking of the parameters, which I think looks cleaner. Feel free to change this if 
+    #   vertical stacking of the parameters, which I think looks cleaner. Feel free to change this if
     #   you find it unclear.
-    cur_time_iter = [f'{cur_time.year:04d}', 
-                     f'{cur_time.month:02d}', 
-                     f'{cur_time.day:02d}', 
-                     f'{cur_time.hour:02d}', 
-                     f'{cur_time.minute:02d}', 
-                     f'{cur_time.second:02d}']
-    
+    cur_time_iter = [
+        f"{cur_time.year:04d}",
+        f"{cur_time.month:02d}",
+        f"{cur_time.day:02d}",
+        f"{cur_time.hour:02d}",
+        f"{cur_time.minute:02d}",
+        f"{cur_time.second:02d}",
+    ]
+
     s3_prefix = prefix_separator.join(cur_time_iter)
 
     logger.info("Using s3 prefix '%s'", s3_prefix)
 
-    return s3_prefix;
+    return s3_prefix
 
 
-def retrieve_gov_file(filename, file_url, bucket, s3_prefix, s3_conn_id, task_id, base_prep_dir):
+def retrieve_gov_file(
+    filename, file_url, bucket, s3_prefix, s3_conn_id, task_id, base_prep_dir
+):
     """
-    Downloads a single file to a temporary directory, recursively unzips it, converts .mdb files if needed, 
+    Downloads a single file to a temporary directory, recursively unzips it, converts .mdb files if needed,
      and uploads it to s3
     :return: none
     """
@@ -69,7 +79,7 @@ def retrieve_gov_file(filename, file_url, bucket, s3_prefix, s3_conn_id, task_id
     else:
         logger.info(f"Moving {download_dest} into {prep_dir} directory")
         shutil.move(download_dest, prep_dir)
-        
+
     for file in os.listdir(prep_dir):
         logger.info(f"{file} found in {prep_dir} for sending to S3")
         if file.endswith(".mdb"):
@@ -95,13 +105,13 @@ def build_temp_subdirectory(task_id, base_prep_dir):
     safe_dirname = "".join(char for char in task_id if char.isalnum())
     prep_dir = os.path.join(base_prep_dir, safe_dirname[:99])
     logger.info(f"using tmp directory '{prep_dir}'")
-        
+
     if not os.path.exists(prep_dir):
         logger.info(f"Creating directory {prep_dir}")
         os.makedirs(prep_dir)
 
     clear_files_and_subdirs(prep_dir)
-    
+
     return prep_dir
 
 
@@ -133,9 +143,10 @@ def unpack_zip(path_to_zip, extract_path):
                 unpack_zip(path_to_zip=inner_zipfile, extract_path=extract_path)
                 os.remove(inner_zipfile)
                 logger.info(f"{name} successfully unzipped")
-        except:
-            logger.error(f"{name} is not a .zip - full path : {os.path.join(extract_path, name)}")
-            pass
+        except Exception:
+            logger.error(
+                f"{name} is not a .zip - full path : {os.path.join(extract_path, name)}"
+            )
 
 
 def upload_to_s3(bucket, s3_prefix, s3_conn_id, file, prep_dir):
@@ -145,6 +156,7 @@ def upload_to_s3(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     key = s3_prefix + delimiter + file.replace(" ", "")
     source_file = os.path.join(prep_dir, file)
+
     if file.lower().endswith(".csv") and not _csv_passes_strict_parse(source_file):
         try:
             os.remove(source_file)
@@ -155,7 +167,9 @@ def upload_to_s3(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     logger.info(f"Moving {source_file} into s3 bucket {bucket}")
     s3_hook = S3Hook(aws_conn_id=s3_conn_id)
     s3_hook.load_file(filename=source_file, key=key, bucket_name=bucket, replace=True)
-    logger.info(f"{source_file} successfully uploaded to s3 in bucket {bucket} and with key {key}")
+    logger.info(
+        f"{source_file} successfully uploaded to s3 in bucket {bucket} and with key {key}"
+    )
     logger.info(f"{file} successfully loaded to S3")
 
 
@@ -187,6 +201,7 @@ def export_xls_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     logger.info(f"loaded {prepped_file} and written all data to {full_csv_filename}")
     upload_to_s3(bucket, s3_prefix, s3_conn_id, csv_filename, prep_dir)
 
+
 def export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
     """
     Strip all tables in an .mdb file into separate .csv files. Upload the resulting .csv files to S3.
@@ -198,37 +213,37 @@ def export_mdb_file(bucket, s3_prefix, s3_conn_id, file, prep_dir):
         cmd_open_mdb = f"mdb-tables {prepped_file}"
         logger.info(f"executing command {cmd_open_mdb}")
         table_names = subprocess.Popen(
-                    cmd_open_mdb,
-                    stdout=subprocess.PIPE,
-                    shell=True,
-                )
+            cmd_open_mdb,
+            stdout=subprocess.PIPE,
+            shell=True,
+        )
         output = table_names.communicate()[0].decode("ascii")
         logger.debug(output)
         tables = output.split(" ")
         logger.debug(tables)
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
-                    "command '{}' return with error (code {}): {}".format(
-                        e.cmd, e.returncode, e.output
-                    )
-                )
+            "command '{}' return with error (code {}): {}".format(
+                e.cmd, e.returncode, e.output
+            )
+        )
     for table in tables:
         if table != "" and table != "\n":
-            export_file = os.path.splitext(file)[0] + "_" + table.replace(" ", "_") + ".csv"
+            export_file = (
+                os.path.splitext(file)[0] + "_" + table.replace(" ", "_") + ".csv"
+            )
             export_fullpath = os.path.join(prep_dir, export_file)
             logger.info(f"Exporting {table} to {export_fullpath}")
             with open(export_fullpath, "wb") as f:
                 try:
-                    subprocess.check_call(
-                                ["mdb-export", prepped_file, table], stdout=f
-                            )
+                    subprocess.check_call(["mdb-export", prepped_file, table], stdout=f)
                 except subprocess.CalledProcessError as e:
                     raise RuntimeError(
-                                "command '{}' return with error (code {}): {}".format(
-                                    e.cmd, e.returncode, e.output
-                                )
-                            )
-                
+                        "command '{}' return with error (code {}): {}".format(
+                            e.cmd, e.returncode, e.output
+                        )
+                    )
+
             upload_to_s3(bucket, s3_prefix, s3_conn_id, export_file, prep_dir)
 
 
