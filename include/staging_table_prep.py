@@ -17,17 +17,25 @@ def ensure_empty_staging_directory():
 
     logger.info(f"Preparing staging directory '{staging_download_dest}'")
 
-    # If the path exists, we want to
+    # If the path exists, we want to remove it, to ensure that it is empty. This is best done by
+    #  fully removing the path.
+    # If the path removal call fails, we will log a warning on path creation.
     if os.path.exists(staging_download_dest):
         logger.info(
             f"Staging directory {staging_download_dest} exists - clearing and deleting"
         )
-        shutil.rmtree(staging_download_dest)
+        shutil.rmtree(staging_download_dest, ignore_errors=True)
         logger.info("Staging directory removed")
 
+    # If the path does not exist, as it shouldn't, create the directory.
+    #  If the path exists (likely because the removal process failed), add a warning at this time.
     if not os.path.exists(staging_download_dest):
         logger.info(f"Creating staging directory {staging_download_dest}")
         os.makedirs(staging_download_dest)
+    else:
+        logger.warning(
+            f"Staging directory {staging_download_dest} exists at creation time. Directory likely contains old files."
+        )
 
 
 def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
