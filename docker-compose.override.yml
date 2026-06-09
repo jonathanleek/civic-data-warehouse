@@ -63,15 +63,23 @@ services:
       retries: 5
 
   scheduler:
+    env_file:
+      - .airflow.vars.stl.env.shared
     environment:
       <<: *airflow-local-env
   api-server:
+    env_file:
+      - .airflow.vars.stl.env.shared
     environment:
       <<: *airflow-local-env
   dag-processor:
+    env_file:
+      - .airflow.vars.stl.env.shared
     environment:
       <<: *airflow-local-env
   triggerer:
+    env_file:
+      - .airflow.vars.stl.env.shared
     environment:
       <<: *airflow-local-env
 
