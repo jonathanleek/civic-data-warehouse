@@ -1,5 +1,6 @@
 .git
-*.env
+*.env*
+!*.env.shared
 airflow_settings.yaml
 astro
 Dockerfile
