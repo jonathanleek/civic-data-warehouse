@@ -30,7 +30,7 @@ with DAG(
     start_date=datetime(2022, 6, 24),
     catchup=False,
     tags=["development_only"],
-    default_args={"retries": 0},
+    default_args={"retries": 2},
 ) as dag:
     log_op = PythonOperator(
         task_id="log_airflow_vars",
