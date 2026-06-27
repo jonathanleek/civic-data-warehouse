@@ -1,0 +1,188 @@
+ordinal_position,column_name,bucket,profile_status,non_empty_rows,non_empty_pct,distinct_non_empty_values,sample_values,matched_lookup_or_vocab,note
+1,cityblock,actual_data,literal,135894,100.00,5738,1184.04 | 2571 | 4699.05 | 3542 | 3226,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+2,parcel,actual_data,literal,135894,100.00,1178,1 | 10 | 100 | 101 | 102,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+3,ownercode,coded_data,coded,135894,100.00,7,0 | 1 | 3 | 4 | 5,staging.prclcode_cdownercode,Coded field; related lookup or vocabulary: staging.prclcode_cdownercode.
+4,asrparcelid,actual_data,literal,135894,100.00,135894,00019005000 | 00019005999 | 00019010000 | 00019020000 | 00019032000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+5,colparcelid,actual_data,literal,135894,100.00,135894,00010000050 | 00010000058 | 00010000100 | 00010000200 | 00010000320,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+6,colcityblock,actual_data,literal,135894,100.00,6751,112600 | 174500 | 325200 | 524700 | 552500,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+7,colparcel,actual_data,literal,135894,100.00,2164,0 | 1 | 10 | 100 | 1000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+8,parcelid,actual_data,literal,135894,100.00,135894,00010000050 | 00010000058 | 00010000100 | 00010000200 | 00010000320,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+9,primaddrrecnum,actual_data,literal,135894,100.00,31,1 | 10 | 11 | 12 | 13,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+10,addrtype,coded_data,coded,135894,100.00,5,1 | 2 | 3 | A | X,staging.prclcode_cdaddrtype,Coded field; related lookup or vocabulary: staging.prclcode_cdaddrtype.
+11,lowaddrnum,actual_data,literal,135894,100.00,7563,2571 | 247 | 3542 | 3226 | 2275,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+12,lowaddrsuf,actual_data,literal,1527,1.12,14,#A | A | B | C | D,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+13,highaddrnum,actual_data,literal,135894,100.00,7649,2571 | 247 | 3542 | 3226 | 2275,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+14,highaddrsuf,actual_data,literal,1523,1.12,14,#A | A | B | C | D,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+15,nlc,coded_data,coded,135894,100.00,1447,0 | 1 | 10 | 100 | 1000,staging.corcode_cdnlctype,Coded field; related lookup or vocabulary: staging.corcode_cdnlctype.
+16,parity,coded_data,coded_no_lookup,135894,100.00,2,E | O,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+17,stpredir,coded_data,coded,13396,9.86,5,E | N | S | W | WW,city vocabulary 65 (Street Prefix Direction),Coded field; related lookup or vocabulary: city vocabulary 65 (Street Prefix Direction).
+18,stname,actual_data,literal,135886,99.99,1225,10TH | 11TH | 12TH | 13TH | 14TH,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+19,sttype,coded_data,coded,134257,98.80,15,AV | BLVD | CT | DR | LA,city vocabulary 66 (Street Type),Coded field; related lookup or vocabulary: city vocabulary 66 (Street Type).
+20,stsufdir,coded_data,coded,13,0.01,2,SE | W,city distribution 195 field definition only,Coded field; related lookup or vocabulary: city distribution 195 field definition only.
+21,stdunitnum,actual_data,literal,7741,5.70,1768,1 | 10 | 100 | 1000 | 1001,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+22,ownername,actual_data,literal,135886,99.99,94595,"BIG CREEK MANAGEMENT LLC | JOHNSON, ODELL & CLAUDINE | HINTON, MONICA | HUGHES, BRIAN | GOOCH, JOSEPH",,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+23,ownername2,actual_data,literal,14367,10.57,9171,C/O DDI-MEDIA | C/O MACK RILEY | C/O POLYONE CORP ATTN: TAX DEPT | C/O WATSON RENTAL LLC | C/O ZACHARY HURLEY TRS,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+24,owneraddr,actual_data,literal,134203,98.76,90662,15637 SUPERIOR ST | 909 ANN AVE | 3974 WYOMING ST | 2643 ST VINCENT ST | P O BOX 5818,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+25,ownercity,actual_data,literal,134188,98.74,2173,5T LOUIS | ABERDEEN | ABILENE | ABSECON | ACWORTH,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+26,ownerstate,actual_data,literal,132700,97.65,85,AE | AK | AL | AP | AR,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+27,ownercountry,actual_data,literal,60168,44.28,36,63129 | AUSTRALIA | BERMUDA | BRAZIL | CA,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+28,ownerzip,actual_data,literal,134183,98.74,3756,0 | 00000 | 00610 | 00831 | 00919,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+29,ownerrank,coded_data,coded_no_lookup,135894,100.00,4,0 | 2 | 3 | 8,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+30,legaldesc1,actual_data,literal,135143,99.45,47370,C. B. 3183 WATER ST | C. B. 2761 VIRGINIA AVE | C. B. 4406 D DRYDEN | C. B.3846 PAGE | C B 923 MARKET ST,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+31,legaldesc2,actual_data,literal,135188,99.48,57216,150 FT / 137.5 FT X 200.63 FT | 31 FT 9 IN X 124 FT | 32 FT 2 1/2 IN X 132 FT 6 IN | 40 FT X 160 FT | 35 FT / 38.17 X 120 FT,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+32,legaldesc3,actual_data,literal,134699,99.12,36490,UNIT 37 BLDG 6 | UNIT #5950 | LOT 36 & N PT VAC RD | BELLE EST ADDN | GEO BAILEY 1ST ADDN,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+33,legaldesc4,actual_data,literal,126362,92.99,49753,"ADJ PTS 30, 31 & 32 | LOT S.34 | 30.22 FT X 74.63 FT | S ST LOUIS SUBURB ADDN | BLOCK 1 LOT S 24",,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+34,legaldesc5,actual_data,literal,38533,28.36,19299,BND N BY ALLEY | LOT SW-PT 19 | LOTS E-19 & W-20 | LOTS W44 E45 | BND W-111 FT E EL BOYLE AV,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+35,asrclasscode,coded_data,coded,135894,100.00,74,0 | 1 | 10 | 100 | 11,staging.prclcode_cdasrclasscode / city vocabulary 23,Coded field; related lookup or vocabulary: staging.prclcode_cdasrclasscode / city vocabulary 23.
+36,propertyclasscode,coded_data,coded_no_lookup,135894,100.00,8,0 | 10 | 12 | 13 | 14,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+37,asrlanduse1,coded_data,coded,135894,100.00,387,0 | 1000 | 1010 | 1015 | 1017,staging.prclcode_cdlanduse / city vocabulary 24,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse / city vocabulary 24.
+38,asrlanduse2,coded_data,coded,135894,100.00,20,0 | 1114 | 1115 | 1116 | 1130,staging.prclcode_cdlanduse / city vocabulary 24,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse / city vocabulary 24.
+39,isabatedproperty,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+40,abatementtype,coded_data,coded_no_lookup,1253,0.92,3,CH353 | CH99 | EEZ,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+41,abatementstartyear,actual_data,literal,135894,100.00,22,0 | 2002 | 2003 | 2004 | 2005,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+42,abatementendyear,actual_data,literal,135894,100.00,20,0 | 2026 | 2027 | 2028 | 2029,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+43,redevphase,coded_data,coded_no_lookup,135894,100.00,5,0 | 1 | 2 | 3 | 4,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+44,redevyearend,actual_data,literal,135894,100.00,56,0 | 1 | 10 | 11 | 12,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+45,redevphase2,coded_data,coded_no_lookup,135894,100.00,5,0 | 1 | 2 | 3 | 9,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+46,redevyearend2,actual_data,literal,135894,100.00,29,0 | 14 | 21 | 22 | 23,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+47,vacantlot,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+48,specbusdist,coded_data,coded,135894,100.00,38,0 | 103 | 104 | 106 | 11,staging.prclcode_cdspecbusdist,Coded field; related lookup or vocabulary: staging.prclcode_cdspecbusdist.
+49,specbusdist2,coded_data,coded,135894,100.00,11,0 | 18 | 20 | 24 | 26,staging.prclcode_cdspecbusdist,Coded field; related lookup or vocabulary: staging.prclcode_cdspecbusdist.
+50,specbusdist3,other,placeholder_zero,135894,100.00,1,0,staging.prclcode_cdspecbusdist,Only a placeholder zero value appears in the current staging snapshot.
+51,tifdist,coded_data,coded,135894,100.00,107,0 | 101 | 102 | 106 | 112,staging.prclcode_cdtifdist,Coded field; related lookup or vocabulary: staging.prclcode_cdtifdist.
+52,lendingagcy,coded_data,coded_no_lookup,135894,100.00,109,0 | 122 | 136 | 145 | 173,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+53,condominium,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+54,nbrofunitssource,coded_data,coded,135894,100.00,9,0 | 1 | 10 | 110 | 120,city vocabulary 96 (Number Of Units Source),Coded field; related lookup or vocabulary: city vocabulary 96 (Number Of Units Source).
+55,nbrofunits,actual_data,literal,135894,100.00,185,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+56,nbrofapts,actual_data,literal,135894,100.00,180,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+57,frontage,actual_data,literal,135894,100.00,4827,30.6 | 25.59 | 78.529999 | 247 | 43.669998,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+58,landarea,actual_data,literal,135894,100.00,10990,43602 | 1740 | 7457 | 11270 | 3119,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+59,recdailydate,actual_data,literal,128132,94.29,10819,11/03/03 00:00:00 | 08/11/93 00:00:00 | 08/04/17 00:00:00 | 06/19/19 00:00:00 | 06/02/64 00:00:00,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+60,recdailynum,actual_data,literal,135894,100.00,783,0 | 1 | 10 | 100 | 100000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+61,recbooknum,actual_data,literal,82456,60.68,1876,0000 | 0001 | 0005 | 0011 | 0012,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+62,recpagenum,actual_data,literal,135894,100.00,3443,3956 | 5116 | 461 | 4738 | 2901,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+63,asdland,actual_data,literal,135894,100.00,3350,0.0000 | 10.0000 | 100.0000 | 1000.0000 | 10000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+64,asdimprove,actual_data,literal,135894,100.00,12438,15100.0000 | 92650.0000 | 47340.0000 | 3030.0000 | 1830.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+65,asdtotal,actual_data,literal,135894,100.00,13418,91310.0000 | 230680.0000 | 1390.0000 | 118230.0000 | 26290.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+66,asdresland,actual_data,literal,135894,100.00,1567,0.0000 | 100.0000 | 1000.0000 | 10010.0000 | 10030.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+67,asdresimprove,actual_data,literal,135894,100.00,10862,15100.0000 | 92650.0000 | 47340.0000 | 3030.0000 | 1830.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+68,asdcomland,actual_data,literal,135894,100.00,1702,0.0000 | 100.0000 | 1000.0000 | 10000.0000 | 100000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+69,asdcomimprove,actual_data,literal,135894,100.00,2512,0.0000 | 100.0000 | 1000.0000 | 10000.0000 | 100000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+70,asdagrland,actual_data,literal,135894,100.00,8,0.0000 | 10.0000 | 1060.0000 | 1190.0000 | 20.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+71,asdagrimprove,actual_data,literal,135894,100.00,3,0.0000 | 153160.0000 | 960.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+72,billyear,actual_data,literal,135894,100.00,2,0 | 2025,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+73,billsuffix,other,placeholder_zero,135894,100.00,1,0,,Only a placeholder zero value appears in the current staging snapshot.
+74,billland,actual_data,literal,135894,100.00,3112,0.0000 | 10.0000 | 100.0000 | 1000.0000 | 10000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+75,billimprove,actual_data,literal,135894,100.00,12208,15100.0000 | 92650.0000 | 47340.0000 | 3030.0000 | 1830.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+76,billtotal,actual_data,literal,135894,100.00,13097,91310.0000 | 230680.0000 | 1390.0000 | 118230.0000 | 26290.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+77,billresland,actual_data,literal,135894,100.00,1530,0.0000 | 100.0000 | 1000.0000 | 10010.0000 | 10030.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+78,billresimprove,actual_data,literal,135894,100.00,10808,15100.0000 | 92650.0000 | 47340.0000 | 3030.0000 | 1830.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+79,billcomland,actual_data,literal,135894,100.00,1502,0.0000 | 100.0000 | 1000.0000 | 10000.0000 | 100000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+80,billcomimprove,actual_data,literal,135894,100.00,2327,0.0000 | 100.0000 | 1000.0000 | 10000.0000 | 100000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+81,billagrland,actual_data,literal,135894,100.00,8,0.0000 | 10.0000 | 1060.0000 | 1190.0000 | 20.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+82,billagrimprove,actual_data,literal,135894,100.00,3,0.0000 | 153160.0000 | 960.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+83,billtaxamt,actual_data,literal,135894,100.00,34510,1164.2000 | 7923.4000 | 2949.8600 | 3842.8700 | 469.7900,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+84,taxbaldue,actual_data,literal,135894,100.00,5307,3063.6400 | 2073.8700 | 290.7000 | 1847.6700 | 1685.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+85,aprland,actual_data,literal,135894,100.00,4597,59600.0000 | 10180.0000 | 34400.0000 | 115733.0000 | 1434300.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+86,aprresland,actual_data,literal,135894,100.00,2204,0.0000 | 1.0000 | 100.0000 | 1000.0000 | 10000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+87,aprresimprove,actual_data,literal,135894,100.00,59154,172160.0000 | 95761.0000 | 201387.0000 | 165632.0000 | 172738.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+88,aprcomland,actual_data,literal,135894,100.00,3600,0.0000 | 1.0000 | 100.0000 | 1000.0000 | 10000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+89,aprcomimprove,actual_data,literal,135894,100.00,5633,59600.0000 | 197590.0000 | 1603800.0000 | 34400.0000 | 581300.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+90,apragrland,actual_data,literal,135894,100.00,18,0.0000 | 107.0000 | 108.0000 | 134.0000 | 178.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+91,apragrimprove,actual_data,literal,135894,100.00,3,0.0000 | 1276300.0000 | 8000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+92,aprexemptland,actual_data,literal,135894,100.00,1788,0.0000 | 1.0000 | 100.0000 | 1000.0000 | 10000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+93,aprexemptimprove,actual_data,literal,135894,100.00,1668,0.0000 | 100.0000 | 1000.0000 | 10000.0000 | 100000.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+94,costaprimprove,actual_data,literal,135894,100.00,62819,172160.0000 | 95761.0000 | 201387.0000 | 165632.0000 | 660200.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+95,asmtappealyear,other,placeholder_zero,135894,100.00,1,0,,Only a placeholder zero value appears in the current staging snapshot.
+96,asmtappealnum,other,placeholder_zero,135894,100.00,1,0,,Only a placeholder zero value appears in the current staging snapshot.
+97,asmtappealtype,other,empty,0,0.00,0,,staging.prclcode_cdasmtappealtype,No non-blank values in the current staging snapshot.
+98,priorasddate,other,constant_value,549,0.40,1,10/04/15 00:00:00,,Only one legacy date value appears; semantics need review before treating it as real historical data.
+99,priorasdland,other,placeholder_zero,135894,100.00,1,0.0000,,Only a placeholder zero value appears in the current staging snapshot.
+100,priorasdimprove,other,placeholder_zero,135894,100.00,1,0.0000,,Only a placeholder zero value appears in the current staging snapshot.
+101,priorasdtotal,other,placeholder_zero,135894,100.00,1,0.0000,,Only a placeholder zero value appears in the current staging snapshot.
+102,priortaxamt,other,placeholder_zero,135894,100.00,1,0.0000,,Only a placeholder zero value appears in the current staging snapshot.
+103,cdalanduse1,coded_data,coded,135894,100.00,417,0 | 1 | 1000 | 1010 | 1015,staging.prclcode_cdlanduse,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse.
+104,cdalanduse2,coded_data,coded,135894,100.00,198,0 | 1000 | 1110 | 1114 | 1115,staging.prclcode_cdlanduse,Coded field; related lookup or vocabulary: staging.prclcode_cdlanduse.
+105,lrmsunitnum,actual_data,literal,7748,5.70,2015,0001 | 0002 | 0004 | 0005 | 0006,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+106,zoning,coded_data,coded,135200,99.49,99,A | AB | ABF | ABH | AC,staging.prclcode_cdzoning / city vocabulary 53,Coded field; related lookup or vocabulary: staging.prclcode_cdzoning / city vocabulary 53.
+107,formbaseddist1,coded_data,coded,135894,100.00,27,0 | 1.01 | 1.02 | 1.03 | 1.04,staging.prclcode_cdfbdnum,Coded field; related lookup or vocabulary: staging.prclcode_cdfbdnum.
+108,formbasedtype1,coded_data,coded_no_lookup,3314,2.44,8,B1 | B2 | NC1 | NC2 | NCOR,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+109,formbaseddist2,coded_data,coded,135894,100.00,2,0 | 2.12,staging.prclcode_cdfbdnum,Coded field; related lookup or vocabulary: staging.prclcode_cdfbdnum.
+110,formbasedtype2,other,sparse,1,0.00,1,NG3,,Only one non-blank row appears in the current staging snapshot.
+111,cuparea,coded_data,coded,135894,100.00,3,0 | 4 | 5,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+112,pudarea,coded_data,coded,135894,100.00,37,0 | 1 | 11 | 12 | 13,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+113,spdarea,coded_data,coded,135894,100.00,3,0 | 1 | 2,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+114,sudarea,coded_data,coded,135894,100.00,11,0 | 1 | 10 | 3 | 4,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+115,todarea,coded_data,coded,135894,100.00,2,0 | 1,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+116,nbrofbldgsres,actual_data,literal,135894,100.00,12,0 | 1 | 17 | 18 | 2,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+117,nbrofbldgscom,actual_data,literal,135894,100.00,20,0 | 1 | 10 | 11 | 12,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+118,firstyearbuilt,actual_data,literal,135894,100.00,190,0 | 1810 | 1813 | 1823 | 1830,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+119,lastyearbuilt,actual_data,literal,135894,100.00,190,0 | 1810 | 1813 | 1823 | 1830,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+120,ressaleprice,actual_data,literal,135845,99.96,6344,1830.0000 | 59600.0000 | 456000.0000 | 93250.0000 | 34400.0000,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+121,ressaledate,actual_data,literal,70020,51.53,11884,09/21/90 00:00:00 | 01/17/83 00:00:00 | 11/03/03 00:00:00 | 08/11/93 00:00:00 | 08/04/17 00:00:00,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+122,vacbldgyear,actual_data,literal,135894,100.00,31,0 | 1989 | 1990 | 1991 | 1992,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+123,geocityblockpart,actual_data,literal,135894,100.00,6450,905 | 5964 | 4895 | 2432 | 297.0085,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+124,ward20,coded_data,coded_no_lookup,135894,100.00,15,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+125,precinct20,coded_data,coded_no_lookup,135894,100.00,22,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+126,insparea20,coded_data,coded_no_lookup,135894,100.00,22,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+127,ward10,coded_data,coded_no_lookup,135894,100.00,29,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+128,precinct10,coded_data,coded_no_lookup,135894,100.00,14,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+129,insparea10,coded_data,coded_no_lookup,135894,100.00,4,1 | 2 | 3 | 99,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+130,ward00,coded_data,coded_no_lookup,135894,100.00,29,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+131,precinct02,coded_data,coded_no_lookup,135894,100.00,19,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+132,precinct04,coded_data,coded_no_lookup,135894,100.00,12,1 | 10 | 11 | 2 | 3,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+133,nbrhd,coded_data,coded,135894,100.00,89,1 | 10 | 11 | 12 | 13,city vocabulary 1 (Neighborhood),Coded field; related lookup or vocabulary: city vocabulary 1 (Neighborhood).
+134,cdadist,coded_data,coded_no_lookup,135894,100.00,19,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+135,cdasubdist,coded_data,coded,135894,100.00,77,1 | 10 | 11 | 12 | 13,staging.corcode_cdcdasubdist,Coded field; related lookup or vocabulary: staging.corcode_cdcdasubdist.
+136,policedist,coded_data,coded_no_lookup,135894,100.00,7,0 | 1 | 2 | 3 | 4,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+137,ishudqualifiedtract,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+138,comneedgrantcode,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+139,censtract20,coded_data,coded_no_lookup,135894,100.00,105,1011 | 1012 | 1013 | 1014 | 1015,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+140,censblock20,coded_data,coded_no_lookup,135894,100.00,448,1000 | 1001 | 1002 | 1003 | 1004,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+141,censtract10,coded_data,coded_no_lookup,135894,100.00,107,1011 | 1012 | 1013 | 1014 | 1015,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+142,censblock10,coded_data,coded_no_lookup,135894,100.00,626,1000 | 1001 | 1002 | 1003 | 1004,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+143,censblock00,coded_data,coded_no_lookup,135894,100.00,5257,1018.3005 | 1232.1005 | 1111.2003 | 1184.103 | 1256.1073,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+144,ward90,coded_data,coded_no_lookup,135894,100.00,29,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+145,precinct90,coded_data,coded_no_lookup,135894,100.00,19,1 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+146,censblock90,coded_data,coded_no_lookup,135894,100.00,5165,1012.306 | 1083.11 | 1018.314 | 1076.402 | 1063.305,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+147,houseconsdist,coded_data,coded_no_lookup,135894,100.00,69,0 | 10 | 11 | 12 | 13,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+148,asrnbrhd,coded_data,coded_no_lookup,135894,100.00,164,101 | 102 | 103 | 104 | 105,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+149,entzone,coded_data,coded,135894,100.00,2,0 | 1,staging.corcode_cdentzone,Coded field; related lookup or vocabulary: staging.corcode_cdentzone.
+150,impactarea,coded_data,coded_no_lookup,135894,100.00,4,0 | 1 | 2 | 99,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+151,ctdarea,coded_data,coded_no_lookup,135894,100.00,27,0 | 1 | 10 | 11 | 12,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+152,leafarea,coded_data,coded,135894,100.00,32,0 | 1 | 10 | 11 | 12,staging.corcode_cdleafarea,Coded field; related lookup or vocabulary: staging.corcode_cdleafarea.
+153,maintzonewc,coded_data,coded_no_lookup,135894,100.00,12,1 | 10 | 11 | 2 | 3,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+154,transdevdist,coded_data,coded,135894,100.00,31,0 | 1 | 10 | 11 | 12,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+155,bedbreakfastdist,coded_data,coded,135894,100.00,4,0 | 1 | 2 | 3,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+156,cortexarea,coded_data,coded,135894,100.00,2,0 | 1,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+157,ch99area,coded_data,coded,135894,100.00,2864,0 | 1001 | 1003 | 1004 | 1005,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+158,ch100area,coded_data,coded,135894,100.00,52,0 | 4300 | 4301 | 4302 | 4303,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+159,ch353area,coded_data,coded,135894,100.00,4,0 | 6102 | 6104 | 6105,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+160,parknum,coded_data,coded_no_lookup,135894,100.00,122,0 | 1216 | 1619 | 2025 | 2026,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+161,citylandmark,coded_data,coded,135894,100.00,111,0 | 102 | 103 | 104 | 105,staging.prclcode_cdcitylandmark,Coded field; related lookup or vocabulary: staging.prclcode_cdcitylandmark.
+162,citylandmarkdist,coded_data,coded_no_lookup,135894,100.00,9,0 | 14 | 2 | 26 | 28,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+163,certlocalhistdist,coded_data,coded,135894,100.00,9,0 | 1 | 10 | 3 | 4,staging.prclcode_cdlocalcertdist,Coded field; related lookup or vocabulary: staging.prclcode_cdlocalcertdist.
+164,localhistdist,coded_data,coded,135894,100.00,9,0 | 11 | 12 | 13 | 14,staging.prclcode_cdlocalhistdist,Coded field; related lookup or vocabulary: staging.prclcode_cdlocalhistdist.
+165,nathistdist,coded_data,coded,135894,100.00,79,0 | 1 | 10 | 11 | 12,staging.prclcode_cdnathistdist,Coded field; related lookup or vocabulary: staging.prclcode_cdnathistdist.
+166,nathistlandmark,coded_data,coded,135894,100.00,13,0 | 10 | 11 | 12 | 13,staging.prclcode_cdnatlandmark,Coded field; related lookup or vocabulary: staging.prclcode_cdnatlandmark.
+167,natregsite,coded_data,coded,135894,100.00,283,0 | 1 | 10 | 100 | 102,staging.prclcode_cdnatregister,Coded field; related lookup or vocabulary: staging.prclcode_cdnatregister.
+168,presrevdist,coded_data,coded,135894,100.00,27,0 | 1 | 10 | 11 | 12,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+169,zip,actual_data,literal,135894,100.00,31,63101 | 63102 | 63103 | 63104 | 63105,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+170,floodplain,coded_data,coded,135894,100.00,7,0 | 10 | 11 | 30 | 31,related to city vocabulary 39 (Parcel Attribute Type),Coded field; related lookup or vocabulary: related to city vocabulary 39 (Parcel Attribute Type).
+171,onfloodblock,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+172,specparceltype,coded_data,coded,638,0.47,5,C | G | K | S | X,staging.prclcode_cdspecparceltype,Coded field; related lookup or vocabulary: staging.prclcode_cdspecparceltype.
+173,subparceltype,coded_data,coded,8894,6.54,10,A | C | E | G | K,staging.prclcode_cdsubparceltype,Coded field; related lookup or vocabulary: staging.prclcode_cdsubparceltype.
+174,nbrofsubaccts,actual_data,literal,135894,100.00,2,0 | 1,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+175,nbrofcondos,actual_data,literal,135894,100.00,74,0 | 10 | 100 | 102 | 103,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+176,lrmsparcel,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+177,acctprimary,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+178,gisprimary,coded_data,boolean,135894,100.00,2,0 | 1,,Boolean-like flag stored as 0/1 in staging.
+179,giscityblock,actual_data,literal,135894,100.00,5718,1184.04 | 2571 | 4699.05 | 3542 | 3226,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+180,gisparcel,actual_data,literal,135894,100.00,943,0 | 1 | 10 | 100 | 101,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+181,gisownercode,coded_data,coded_no_lookup,135894,100.00,4,0 | 1 | 5 | 7,,Coded field; no matching lookup table or published vocabulary has been linked yet.
+182,handle,actual_data,literal,135894,100.00,127001,10001000005 | 10001000010 | 10001000020 | 10001000032 | 10001000034,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+183,parcel9,actual_data,literal,135894,100.00,135017,100000010 | 100000020 | 100000030 | 100000040 | 100000050,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+184,ownerocc,coded_data,coded,61677,45.39,6,1 | 2 | 4 | 5 | C,staging.prclcode_cdownerocccode,Coded field; related lookup or vocabulary: staging.prclcode_cdownerocccode.
+185,firstdate,actual_data,literal,135894,100.00,1390,01/01/06 00:00:00 | 01/01/17 00:00:00 | 01/01/23 00:00:00 | 01/02/05 00:00:00 | 01/02/11 00:00:00,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+186,lastdate,actual_data,literal,135894,100.00,1,04/17/26 00:00:00,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."
+187,ownerupdate,actual_data,literal,134582,99.03,8608,09/21/90 00:00:00 | 11/03/03 00:00:00 | 08/11/93 00:00:00 | 08/04/17 00:00:00 | 06/19/19 00:00:00,,"Stores literal values such as identifiers, names, text, dates, counts, or amounts."

@@ -1,0 +1,101 @@
+{
+  "generated_at_utc": "2026-04-20T02:22:02+00:00",
+  "files": [
+    {
+      "category": "source_field_definitions",
+      "name": "2017 - 2023 Parcels field definitions",
+      "path": "source_field_definitions/parcels_2017_2023_fields.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/fields-download.cfm?distributionID=189&format=csv",
+      "sha256": "9b365e089960e4efa5189f2ca29bb1ff81592117691b95bb3e1b09600b77c30b",
+      "bytes": 3023
+    },
+    {
+      "category": "source_field_definitions",
+      "name": "Parcel Joining Data field definitions",
+      "path": "source_field_definitions/parcel_joining_data_fields.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/fields-download.cfm?distributionID=195&format=csv",
+      "sha256": "91249b1d335ee850adbf946ea8648c83864c750f45601d15ae80658feb5b0bf8",
+      "bytes": 2552
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Neighborhood",
+      "path": "controlled_vocabularies/neighborhood.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=1&format=csv",
+      "sha256": "b48b18aec8ad6dd63270bb5b3791303d549dc43615a29f8967653e2a6d1dfc42",
+      "bytes": 11854
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Assessor Class Code",
+      "path": "controlled_vocabularies/assessor_class_code.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=23&format=csv",
+      "sha256": "a1cf815fafccec8e895ece61865b9542e2b52c712f612cc0789732b49240d77b",
+      "bytes": 5993
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Assessor Land Use",
+      "path": "controlled_vocabularies/assessor_land_use.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=24&format=csv",
+      "sha256": "3b43cd8d7a3d4bb805cd432c2029bfecdee9079a52c5ec864b7c3e7af05eeee4",
+      "bytes": 66864
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Parcel Attribute Type",
+      "path": "controlled_vocabularies/parcel_attribute_type.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=39&format=csv",
+      "sha256": "2585d7961a22f973a72ba59a5fd9628ce17867f292a9f9b2538e718f244e48c5",
+      "bytes": 1698
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Zoning Code",
+      "path": "controlled_vocabularies/zoning_code.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=53&format=csv",
+      "sha256": "537204b4b1d77f15c50de52c13a43674cff4cd31ddaf4d1e037999a7eea55e2b",
+      "bytes": 937
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Building Exterior Wall Type",
+      "path": "controlled_vocabularies/building_exterior_wall_type.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=58&format=csv",
+      "sha256": "e6de30f4d4cf747c917e914df51ebded605bfdc33ed51e9c51d4a8e5ae8e7427",
+      "bytes": 3209
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Street Prefix Direction",
+      "path": "controlled_vocabularies/street_prefix_direction.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=65&format=csv",
+      "sha256": "0fcdb09452fbff59d682da39ce2ac3589d9080dc902eddd6a13da33313555d70",
+      "bytes": 273
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Street Type",
+      "path": "controlled_vocabularies/street_type.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=66&format=csv",
+      "sha256": "dcf62f1891de1a85ff40959f5883e7e88894d2f0e29b2bd864bbc97aef192cf8",
+      "bytes": 766
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Multi Parcel Ind",
+      "path": "controlled_vocabularies/multi_parcel_ind.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=69&format=csv",
+      "sha256": "c47d46fc0df8bd85d0210d9074bff015081cc9ac68c9e08a38f0d3109937dd1b",
+      "bytes": 412
+    },
+    {
+      "category": "controlled_vocabularies",
+      "name": "Number Of Units Source",
+      "path": "controlled_vocabularies/number_of_units_source.csv",
+      "source_url": "https://www.stlouis-mo.gov/customcf/endpoints/metadata/vocabulary-elements-download.cfm?id=96&format=csv",
+      "sha256": "983cb592e7487a7b75e4d9d572694283f5ff033d1a25621fe032552bd238a86b",
+      "bytes": 625
+    }
+  ]
+}
