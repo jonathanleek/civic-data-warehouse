@@ -38,9 +38,16 @@ with DAG(
         sql="create_history.sql",
     )
 
+    # Create schema "history" in cdw database
+    create_crosswalk = SQLExecuteQueryOperator(
+        task_id="create_crosswalk",
+        conn_id="cdw-dev",
+        sql="create_crosswalk.sql",
+    )
+
     create_truncate_tables_function = SQLExecuteQueryOperator(
         task_id="create_truncate_tables_function",
         conn_id="cdw-dev",
         sql="create_truncate_tables_function.sql",
     )
-create_staging >> create_current >> create_history >> create_truncate_tables_function
+create_staging >> create_current >> create_history >> create_crosswalk >> create_truncate_tables_function
