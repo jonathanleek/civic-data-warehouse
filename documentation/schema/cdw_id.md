@@ -79,6 +79,11 @@ The crosswalk (`crosswalk.parcel_xref`: region, native reference `UNIQUE`, parce
 regenerated. Sequences are collision-free within a region; the one disallowed situation is two
 independent crosswalks minting the same region.
 
+Operationally, `include/sql/create_crosswalk.sql` creates this registry. New rows in
+`crosswalk.parcel_xref` may omit `parcel_seq`; a trigger allocates the next value from the
+region-specific Postgres sequence. Pipeline rebuilds should read and append to this table, not
+truncate it.
+
 Storage
 =======
 A full CDW_ID is far wider than a 64-bit integer, so it is stored as **TEXT**, not a number.
