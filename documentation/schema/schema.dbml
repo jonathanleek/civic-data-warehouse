@@ -4,8 +4,11 @@
 // Spine tables (parcel, building, unit) carry the CDW_ID as component columns
 // plus a generated STORED text column `cdw_id` that is the zero-padded,
 // dot-delimited concatenation and serves as the TEXT primary key:
-//     CCCC.cccccc.pppppppp.bbbb.uuuuu
+//     CCC.ccccc.pppppppp.bbbb.uuuuu
 // Lower levels are zero-filled (parcel -> ....0000.00000, building -> ....00000).
+// Component columns carry CHECK constraints for the canonical widths (3/5/8/4/5).
+// Parent FK columns (building.parcel_cdw_id, unit.building_cdw_id) are generated
+// from the child's own component columns.
 // All non-spine tables use namespaced TEXT surrogate keys (<country>.<region>.<entity>.<seq>).
 // =============================================================================
 
@@ -14,7 +17,7 @@ Table parcel [headercolor: #3498db] {
   country_code text [not null]
   region_code text [not null]
   parcel_seq bigint [not null]
-  cdw_id text [pk, note: 'GENERATED STORED: CCCC.cccccc.pppppppp.0000.00000']
+  cdw_id text [pk, note: 'GENERATED STORED: CCC.ccccc.pppppppp.0000.00000']
   county varchar
   owner_id text [ref: > legal_entity.legal_entity_id]
   ward int
@@ -30,8 +33,8 @@ Table building [headercolor: #3498db] {
   region_code text [not null]
   parcel_seq bigint [not null]
   building_seq bigint [not null]
-  cdw_id text [pk, note: 'GENERATED STORED: CCCC.cccccc.pppppppp.bbbb.00000']
-  parcel_cdw_id text [not null, ref: > parcel.cdw_id]
+  cdw_id text [pk, note: 'GENERATED STORED: CCC.ccccc.pppppppp.bbbb.00000']
+  parcel_cdw_id text [not null, ref: > parcel.cdw_id, note: 'GENERATED STORED from country_code/region_code/parcel_seq']
   owner_id text [ref: > legal_entity.legal_entity_id]
   use_type_id text [ref: > use_type.use_type_id]
   sq_footage int
@@ -44,8 +47,8 @@ Table unit [headercolor: #3498db] {
   parcel_seq bigint [not null]
   building_seq bigint [not null]
   unit_seq bigint [not null]
-  cdw_id text [pk, note: 'GENERATED STORED: CCCC.cccccc.pppppppp.bbbb.uuuuu']
-  building_cdw_id text [not null, ref: > building.cdw_id]
+  cdw_id text [pk, note: 'GENERATED STORED: CCC.ccccc.pppppppp.bbbb.uuuuu']
+  building_cdw_id text [not null, ref: > building.cdw_id, note: 'GENERATED STORED from country_code/region_code/parcel_seq/building_seq']
   owner_id text [ref: > legal_entity.legal_entity_id]
   use_type_id text [ref: > use_type.use_type_id]
   address_id text [ref: > address.address_id]

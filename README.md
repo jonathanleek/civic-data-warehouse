@@ -54,7 +54,7 @@ A local AWS S3 emulator that serves as the **landing zone** for raw data files. 
 CDW PostgreSQL (Data Warehouse)
 -------------------------------
 
-A dedicated Postgres 15 instance that serves as the **data warehouse** itself. This is separate from Airflow's internal metadata database. It contains three schemas:
+A dedicated Postgres 15 instance that serves as the **data warehouse** itself. This is separate from Airflow's internal metadata database. It contains four schemas:
 
 - **`staging`** — raw data loaded directly from S3 CSVs
 - **`crosswalk`** — persistent CDW_ID registries such as parcel handle → parcel sequence mappings
@@ -75,7 +75,7 @@ All DAGs are manually triggered (`schedule=None`) unless noted otherwise. They s
 
 **File:** `dags/create_cdw_databases.py`
 
-Creates the CDW schemas (`staging`, `crosswalk`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG. The `crosswalk` schema is persistent ID registry state and should not be truncated during normal rebuilds.
+Creates the CDW schemas (`staging`, `crosswalk`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG. Re-running it drops and recreates `staging` and `current` (both are full-reload targets), so any loaded data in those schemas is lost. The `crosswalk` schema is persistent ID registry state: it is created if missing and never dropped or truncated.
 
 **Task order:** `create_staging` > `create_crosswalk` > `create_data_prep` > `create_history` > `create_truncate_tables_function`
 

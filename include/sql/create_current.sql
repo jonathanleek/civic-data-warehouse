@@ -3,8 +3,8 @@
 -- -----------------------------------------------------------------------------
 -- Implements the CDW_ID standard (documentation/schema/cdw_id.md):
 --
---     CCCC.cccccc.pppppppp.bbbb.uuuuu
---     country(4) . region/county(6) . parcel(8) . building(4) . unit(5)
+--     CCC.ccccc.pppppppp.bbbb.uuuuu
+--     country(3) . region/county(5) . parcel(8) . building(4) . unit(5)
 --
 -- Spine tables (parcel, building, unit) store the CDW_ID as component columns
 -- plus a generated STORED text column `cdw_id` that is the zero-padded,
@@ -14,12 +14,25 @@
 --     building  -> ....pppppppp.bbbb.00000
 --     unit      -> ....pppppppp.bbbb.uuuuu
 --
+-- Component columns carry CHECK constraints matching the canonical widths, so
+-- lpad() never truncates and every cdw_id is the documented shape.
+--
+-- Parent FK columns (`building.parcel_cdw_id`, `unit.building_cdw_id`) are also
+-- generated from the row's own component columns, so parentage has a single
+-- source of truth: a building cannot claim a parcel its components contradict.
+--
 -- Non-spine tables use namespaced TEXT surrogate primary keys of the form
 --     <country>.<region>.<entity>.<seq>
 -- All foreign keys are TEXT to match the keys they reference.
+--
+-- This script drops and recreates the schema (same pattern as
+-- drop_and_create_staging.sql). `current` is a full truncate-and-reload target,
+-- so nothing here is authoritative state; the persistent ID registries live in
+-- the separate `crosswalk` schema, which this script does not touch.
 -- =============================================================================
 
-CREATE SCHEMA IF NOT EXISTS current ;
+DROP SCHEMA IF EXISTS current CASCADE;
+CREATE SCHEMA current;
 
 -- =============================================================================
 -- Lookup tables (namespaced TEXT surrogate keys)
@@ -99,6 +112,9 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."parcel" (
     '0000' || '.' ||
     '00000'
   ) STORED PRIMARY KEY,
+  CONSTRAINT parcel_country_code_format CHECK ("country_code" ~ '^[0-9]{3}$'),
+  CONSTRAINT parcel_region_code_format CHECK ("region_code" ~ '^[0-9]{5}$'),
+  CONSTRAINT parcel_seq_range CHECK ("parcel_seq" BETWEEN 1 AND 99999999),
   "county" varchar,
   "owner_id" text,
   "ward" int,
@@ -121,7 +137,17 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."building" (
     lpad("building_seq"::text, 4, '0') || '.' ||
     '00000'
   ) STORED PRIMARY KEY,
-  "parcel_cdw_id" text NOT NULL,
+  "parcel_cdw_id" text GENERATED ALWAYS AS (
+    lpad("country_code", 3, '0') || '.' ||
+    lpad("region_code", 5, '0') || '.' ||
+    lpad("parcel_seq"::text, 8, '0') || '.' ||
+    '0000' || '.' ||
+    '00000'
+  ) STORED NOT NULL,
+  CONSTRAINT building_country_code_format CHECK ("country_code" ~ '^[0-9]{3}$'),
+  CONSTRAINT building_region_code_format CHECK ("region_code" ~ '^[0-9]{5}$'),
+  CONSTRAINT building_parcel_seq_range CHECK ("parcel_seq" BETWEEN 1 AND 99999999),
+  CONSTRAINT building_seq_range CHECK ("building_seq" BETWEEN 1 AND 9999),
   "owner_id" text,
   "use_type_id" text,
   "sq_footage" int,
@@ -141,7 +167,18 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."unit" (
     lpad("building_seq"::text, 4, '0') || '.' ||
     lpad("unit_seq"::text, 5, '0')
   ) STORED PRIMARY KEY,
-  "building_cdw_id" text NOT NULL,
+  "building_cdw_id" text GENERATED ALWAYS AS (
+    lpad("country_code", 3, '0') || '.' ||
+    lpad("region_code", 5, '0') || '.' ||
+    lpad("parcel_seq"::text, 8, '0') || '.' ||
+    lpad("building_seq"::text, 4, '0') || '.' ||
+    '00000'
+  ) STORED NOT NULL,
+  CONSTRAINT unit_country_code_format CHECK ("country_code" ~ '^[0-9]{3}$'),
+  CONSTRAINT unit_region_code_format CHECK ("region_code" ~ '^[0-9]{5}$'),
+  CONSTRAINT unit_parcel_seq_range CHECK ("parcel_seq" BETWEEN 1 AND 99999999),
+  CONSTRAINT unit_building_seq_range CHECK ("building_seq" BETWEEN 1 AND 9999),
+  CONSTRAINT unit_seq_range CHECK ("unit_seq" BETWEEN 1 AND 99999),
   "owner_id" text,
   "use_type_id" text,
   "address_id" text,
@@ -261,16 +298,16 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."secondary_owner" (
 -- Comments
 -- =============================================================================
 
-COMMENT ON COLUMN "cdw"."current"."parcel"."cdw_id" IS 'CDW_ID standard key (CCCC.cccccc.pppppppp.0000.00000); building/unit segments zero-filled at parcel level';
-COMMENT ON COLUMN "cdw"."current"."building"."cdw_id" IS 'CDW_ID standard key (CCCC.cccccc.pppppppp.bbbb.00000); unit segment zero-filled at building level';
-COMMENT ON COLUMN "cdw"."current"."unit"."cdw_id" IS 'CDW_ID standard key (CCCC.cccccc.pppppppp.bbbb.uuuuu)';
+COMMENT ON COLUMN "cdw"."current"."parcel"."cdw_id" IS 'CDW_ID standard key (CCC.ccccc.pppppppp.0000.00000); building/unit segments zero-filled at parcel level';
+COMMENT ON COLUMN "cdw"."current"."building"."cdw_id" IS 'CDW_ID standard key (CCC.ccccc.pppppppp.bbbb.00000); unit segment zero-filled at building level';
+COMMENT ON COLUMN "cdw"."current"."unit"."cdw_id" IS 'CDW_ID standard key (CCC.ccccc.pppppppp.bbbb.uuuuu)';
 COMMENT ON COLUMN "cdw"."current"."municipal_parcel_id_mapping"."municipal_parcel_id" IS 'City native parcel reference (assessor handle); preserved for crosswalk back to source';
 
 -- =============================================================================
 -- Foreign keys
 -- =============================================================================
 
--- Spine parentage (explicit parent FK columns)
+-- Spine parentage (parent FK columns are generated from the child's components)
 ALTER TABLE "cdw"."current"."building" ADD FOREIGN KEY ("parcel_cdw_id") REFERENCES "cdw"."current"."parcel" ("cdw_id");
 
 ALTER TABLE "cdw"."current"."unit" ADD FOREIGN KEY ("building_cdw_id") REFERENCES "cdw"."current"."building" ("cdw_id");

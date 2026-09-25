@@ -74,15 +74,17 @@ number and not a hash of it.
   - *Decentralized* — each jurisdiction maintains its own crosswalk for its own namespace; no
     central coordination is required.
 
-The crosswalk (`crosswalk.parcel_xref`: region, native reference `UNIQUE`, parcel sequence) is the
-**single authoritative registry for its region** — persisted, version-controlled, and never
+The crosswalk (`crosswalk.parcel_xref`: country, region, native reference `UNIQUE`, parcel
+sequence) is the **single authoritative registry for its namespace** — persisted, version-controlled, and never
 regenerated. Sequences are collision-free within a region; the one disallowed situation is two
 independent crosswalks minting the same region.
 
 Operationally, `include/sql/create_crosswalk.sql` creates this registry. New rows in
 `crosswalk.parcel_xref` may omit `parcel_seq`; a trigger allocates the next value from the
-region-specific Postgres sequence. Pipeline rebuilds should read and append to this table, not
-truncate it.
+namespace-specific (`country.region`) Postgres sequence. The same trigger rejects any update that
+would change an existing `parcel_seq`, and if a row is inserted with an explicit `parcel_seq`
+(e.g. restoring a registry from backup) it advances the sequence past that value so later minting
+cannot collide. Pipeline rebuilds should read and append to this table, not truncate it.
 
 Storage
 =======
@@ -93,7 +95,10 @@ A full CDW_ID is far wider than a 64-bit integer, so it is stored as **TEXT**, n
   **generated** `cdw_id` (the zero-padded, dot-delimited concatenation) used as the primary key.
   This gives one canonical string for joins/federation and indexable components for filtering.
 - Parent relationships are explicit foreign-key columns: `building.parcel_cdw_id` → `parcel`,
-  `unit.building_cdw_id` → `building`.
+  `unit.building_cdw_id` → `building`. They are generated from the child row's own component
+  columns, so a child cannot reference a parent its components contradict.
+- Component columns carry `CHECK` constraints for the canonical widths, so zero-padding never
+  truncates and an out-of-range sequence is rejected rather than silently colliding.
 - Non-spine tables (legal_entity, address, the event tables, and all reference/lookup tables) use
   a namespaced TEXT surrogate of the form `<country>.<region>.<entity>.<sequence>`, so they too are
   globally unique and union cleanly across deployments.
