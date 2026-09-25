@@ -35,7 +35,7 @@ Structure
 =========
 ```
 <country>.<region>.<parcel>.<building>.<unit>
-   840   . 29510  .  000123  .  0000   . 00000      ← a St. Louis City parcel
+   840   . 29510  . 00012345 .  0000   . 00000      ← a St. Louis City parcel
 ```
 
 | Segment   | Authority (guarantees uniqueness)                                              | Notes |
@@ -46,7 +46,12 @@ Structure
 | building  | Sequence within the parcel                                                     | `0000` = parcel-level record (no building) |
 | unit      | Sequence within the building                                                   | `00000` = building-level record (no unit) |
 
-Any level not applicable is zero-filled (a vacant lot = `840.29510.000123.0000.00000`), and the
+**Canonical field widths** (zero-padded, used by the generated `cdw_id`): country **3**, region
+**5**, parcel **8**, building **4**, unit **5** — e.g. `840.29510.00012345.0007.00042`. (Country =
+ISO 3166-1 numeric is exactly 3; region = US FIPS is exactly 5; these widths are fixed so ids sort
+and prefix-join correctly.)
+
+Any level not applicable is zero-filled (a vacant lot = `840.29510.00012345.0000.00000`), and the
 identifier still joins cleanly by prefix — e.g. all parcels in a region are
 `840.29510.%`, all units of a building share its `…<parcel>.<building>.%` prefix.
 
@@ -69,10 +74,17 @@ number and not a hash of it.
   - *Decentralized* — each jurisdiction maintains its own crosswalk for its own namespace; no
     central coordination is required.
 
-The crosswalk (`crosswalk.parcel_xref`: region, native reference `UNIQUE`, parcel sequence) is the
-**single authoritative registry for its region** — persisted, version-controlled, and never
+The crosswalk (`crosswalk.parcel_xref`: country, region, native reference `UNIQUE`, parcel
+sequence) is the **single authoritative registry for its namespace** — persisted, version-controlled, and never
 regenerated. Sequences are collision-free within a region; the one disallowed situation is two
 independent crosswalks minting the same region.
+
+Operationally, `include/sql/create_crosswalk.sql` creates this registry. New rows in
+`crosswalk.parcel_xref` may omit `parcel_seq`; a trigger allocates the next value from the
+namespace-specific (`country.region`) Postgres sequence. The same trigger rejects any update that
+would change an existing `parcel_seq`, and if a row is inserted with an explicit `parcel_seq`
+(e.g. restoring a registry from backup) it advances the sequence past that value so later minting
+cannot collide. Pipeline rebuilds should read and append to this table, not truncate it.
 
 Storage
 =======
@@ -83,7 +95,10 @@ A full CDW_ID is far wider than a 64-bit integer, so it is stored as **TEXT**, n
   **generated** `cdw_id` (the zero-padded, dot-delimited concatenation) used as the primary key.
   This gives one canonical string for joins/federation and indexable components for filtering.
 - Parent relationships are explicit foreign-key columns: `building.parcel_cdw_id` → `parcel`,
-  `unit.building_cdw_id` → `building`.
+  `unit.building_cdw_id` → `building`. They are generated from the child row's own component
+  columns, so a child cannot reference a parent its components contradict.
+- Component columns carry `CHECK` constraints for the canonical widths, so zero-padding never
+  truncates and an out-of-range sequence is rejected rather than silently colliding.
 - Non-spine tables (legal_entity, address, the event tables, and all reference/lookup tables) use
   a namespaced TEXT surrogate of the form `<country>.<region>.<entity>.<sequence>`, so they too are
   globally unique and union cleanly across deployments.
