@@ -12,11 +12,13 @@ staging_download_dest = "/tmp/stage/"
 prefix_delimiter = "/"
 
 # Identifiers cannot be passed as bound parameters, so any value interpolated
-# into a DDL/COPY statement must match this strict allowlist. The clean_* helpers
-# below are total: they always emit a conforming identifier, so this pattern now
-# serves as a defense-in-depth assertion (it should never fail) rather than an
-# input gate that rejects awkward-but-legitimate source names.
-SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_]+$")
+# into a DDL/COPY statement must match this strict allowlist: a legal unquoted
+# Postgres identifier (lower case, since unquoted names fold to lower case, and
+# not starting with a digit). clean_postgres_name() is total: it always emits a
+# conforming identifier, so assert_safe_identifier() is a defense-in-depth
+# check (it should never fail) rather than an input gate that rejects
+# awkward-but-legitimate source names.
+SAFE_IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]*$")
 
 # Postgres silently truncates identifiers to NAMEDATALEN - 1 bytes. Names must
 # be cut to this length BEFORE deduplication, or two long names that differ
@@ -24,147 +26,10 @@ SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_]+$")
 # ("column specified more than once"). Cleaned names are ASCII, so chars == bytes.
 PG_MAX_IDENTIFIER_LENGTH = 63
 
-
-def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
-    """
-    This will grab the latest 'prefix', or S3 directory, from the S3 connection and bucket name passed in.
-
-    We assume that the prefixes are time strings which can be sorted. Thus we take the latest one.
-
-    There are no checks to see if the prefix is valid! This can cause many issues, especially if the state of
-     the directory is invalid.
-
-    Args:
-        bucket: S3 bucket name
-        s3_conn_id: S3 connection string
-
-    Returns:
-        Name of the latest prefix in the S3 bucket
-    """
-
-    prefix_list: list[str] = S3Hook(aws_conn_id=s3_conn_id).list_prefixes(
-        bucket_name=bucket, delimiter=prefix_delimiter
-    )
-
-    if not prefix_list:
-        logger.warning("No prefixes found. Assuming files are in root of bucket.")
-        return ""
-
-    prefix_list.sort(reverse=True)
-
-    logger.info("Using prefix %s", prefix_list[0])
-
-    return prefix_list[0]
-
-
-def ensure_empty_staging_directory():
-
-    logger.info(f"Preparing staging directory '{staging_download_dest}'")
-
-    # If the path exists, we want to remove it, to ensure that it is empty. This is best done by
-    #  fully removing the path.
-    # If the path removal call fails, we will log a warning on path creation.
-    if os.path.exists(staging_download_dest):
-        logger.info(
-            f"Staging directory {staging_download_dest} exists - clearing and deleting"
-        )
-        shutil.rmtree(staging_download_dest, ignore_errors=True)
-        logger.info("Staging directory removed")
-
-    # If the path does not exist, as it shouldn't, create the directory.
-    #  If the path exists (likely because the removal process failed), add a warning at this time.
-    if not os.path.exists(staging_download_dest):
-        logger.info(f"Creating staging directory {staging_download_dest}")
-        os.makedirs(staging_download_dest)
-    else:
-        logger.warning(
-            f"Staging directory {staging_download_dest} exists at creation time. Directory likely contains old files."
-        )
-
-
-def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
-
-    logger.info(f"Using tmp directory '{staging_download_dest}'")
-    filename_only = key.split(prefix_delimiter)[-1]
-    dest_file = os.path.join(staging_download_dest, filename_only)
-    logger.info(f"Downloading file '{dest_file}'")
-
-    # KRT note 04/06/26 :
-    # Using S3Hook.download_file() seems to be async for me, but I'm
-    #  unable to see what and how. All I can see is that I get occasional
-    #  zero-byte files. So, right now, I'm using the underlying
-    #  connection's download_file() call, which should be synchronous and
-    #  therefore fully block until the file download completes.
-    S3Hook(aws_conn_id=s3_conn_id).get_conn().download_file(bucket_name, key, dest_file)
-
-    logger.info(f"{dest_file} downloaded")
-
-
-def create_staging_table(postgres_conn_id, key):
-    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
-    logger.info("Attempting to create table for " + filename)
-    create_table_in_postgres(filename=filename, postgres_conn=postgres_conn_id)
-
-
-def populate_staging_table(postgres_conn, key):
-
-    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
-    tablename = staging_table_name(key)
-    logger.info(f"Attempting to import file {filename} into table {tablename}")
-
-    columns = read_header_columns(filename)
-    # Defense in depth: clean_column_names always returns conforming names.
-    for column in columns:
-        if not SAFE_IDENTIFIER.match(column):
-            raise ValueError(f"Unsafe column name {column!r} in {key}")
-    column_list = ", ".join(columns)
-
-    # Bulk-load via COPY: libpq streams the file so memory stays flat
-    # regardless of size, and Postgres handles CSV quoting/escaping. COPY maps
-    # CSV fields to the column list POSITIONALLY — HEADER true only discards
-    # the first record without comparing names (and HEADER MATCH cannot be
-    # used, since cleaned identifiers differ from the raw header fields). The
-    # load is correct only because this column list comes from the same
-    # read_header_columns parse the create step used on the same file.
-    # The unquoted table name folds to lower case to match CREATE TABLE.
-    copy_sql = (
-        f"COPY cdw.staging.{tablename} ({column_list}) "
-        "FROM STDIN WITH (FORMAT CSV, HEADER true)"
-    )
-    logger.debug(copy_sql)
-    bulk_load_csv(copy_sql, filename, postgres_conn)
-
-
-def execute_query(query, conn_id):
-    hook = PostgresHook(postgres_conn_id=conn_id)
-    hook.run(sql=query)
-
-
-def bulk_load_csv(bulkCopySql, filename, conn_id):
-    hook = PostgresHook(postgres_conn_id=conn_id)
-    hook.copy_expert(sql=bulkCopySql, filename=filename)
-
-
-def clean_column_name(column_name):
-    # Source headers are schema we cannot ask upstream to change, so coerce any
-    # name into a legal identifier instead of rejecting it. Lowercase, turn
-    # spaces into underscores, then drop everything that is not an ASCII
-    # identifier character (this strips punctuation and non-ASCII letters such
-    # as accented characters).
-    column_name = column_name.lower().replace(" ", "_")
-    column_name = re.sub(r"[^a-z0-9_]", "", column_name)
-
-    # A header of only stripped characters leaves nothing behind; give it a base
-    # name so the column still loads (callers dedupe collisions).
-    if not column_name:
-        column_name = "column"
-
-    # Unquoted identifiers cannot start with a digit.
-    if column_name[0].isdigit():
-        column_name = "_" + column_name
-
-    # Check for reserved keywords and rename if necessary
-    reserved_keywords = {
+# Postgres reserved key words; an unquoted identifier equal to one of these is
+# a syntax error, so clean_postgres_name() suffixes them with "_".
+POSTGRES_RESERVED_KEYWORDS = frozenset(
+    {
         "all",
         "analyse",
         "analyze",
@@ -264,13 +129,166 @@ def clean_column_name(column_name):
         "window",
         "with",
     }
+)
 
-    if column_name in reserved_keywords:
-        column_name += "_"
+
+def assert_safe_identifier(name: str, context: str) -> str:
+    """Raise unless name is a safe unquoted identifier; return it unchanged.
+
+    The single gate for every identifier interpolated into generated SQL.
+    """
+    if not SAFE_IDENTIFIER.match(name) or len(name) > PG_MAX_IDENTIFIER_LENGTH:
+        raise ValueError(f"Refusing to use unsafe identifier {name!r} ({context})")
+    return name
+
+
+def get_latest_s3_prefix(bucket: str, s3_conn_id: str):
+    """
+    This will grab the latest 'prefix', or S3 directory, from the S3 connection and bucket name passed in.
+
+    We assume that the prefixes are time strings which can be sorted. Thus we take the latest one.
+
+    There are no checks to see if the prefix is valid! This can cause many issues, especially if the state of
+     the directory is invalid.
+
+    Args:
+        bucket: S3 bucket name
+        s3_conn_id: S3 connection string
+
+    Returns:
+        Name of the latest prefix in the S3 bucket
+    """
+
+    prefix_list: list[str] = S3Hook(aws_conn_id=s3_conn_id).list_prefixes(
+        bucket_name=bucket, delimiter=prefix_delimiter
+    )
+
+    if not prefix_list:
+        logger.warning("No prefixes found. Assuming files are in root of bucket.")
+        return ""
+
+    prefix_list.sort(reverse=True)
+
+    logger.info("Using prefix %s", prefix_list[0])
+
+    return prefix_list[0]
+
+
+def ensure_empty_staging_directory():
+
+    logger.info(f"Preparing staging directory '{staging_download_dest}'")
+
+    # If the path exists, we want to remove it, to ensure that it is empty. This is best done by
+    #  fully removing the path.
+    # If the path removal call fails, we will log a warning on path creation.
+    if os.path.exists(staging_download_dest):
+        logger.info(
+            f"Staging directory {staging_download_dest} exists - clearing and deleting"
+        )
+        shutil.rmtree(staging_download_dest, ignore_errors=True)
+        logger.info("Staging directory removed")
+
+    # If the path does not exist, as it shouldn't, create the directory.
+    #  If the path exists (likely because the removal process failed), add a warning at this time.
+    if not os.path.exists(staging_download_dest):
+        logger.info(f"Creating staging directory {staging_download_dest}")
+        os.makedirs(staging_download_dest)
+    else:
+        logger.warning(
+            f"Staging directory {staging_download_dest} exists at creation time. Directory likely contains old files."
+        )
+
+
+def download_from_s3(bucket_name: str, s3_conn_id: str, key: str):
+
+    logger.info(f"Using tmp directory '{staging_download_dest}'")
+    filename_only = key.split(prefix_delimiter)[-1]
+    dest_file = os.path.join(staging_download_dest, filename_only)
+    logger.info(f"Downloading file '{dest_file}'")
+
+    # KRT note 04/06/26 :
+    # Using S3Hook.download_file() seems to be async for me, but I'm
+    #  unable to see what and how. All I can see is that I get occasional
+    #  zero-byte files. So, right now, I'm using the underlying
+    #  connection's download_file() call, which should be synchronous and
+    #  therefore fully block until the file download completes.
+    S3Hook(aws_conn_id=s3_conn_id).get_conn().download_file(bucket_name, key, dest_file)
+
+    logger.info(f"{dest_file} downloaded")
+
+
+def create_staging_table(postgres_conn_id, key):
+    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
+    logger.info("Attempting to create table for " + filename)
+    create_table_in_postgres(filename=filename, postgres_conn=postgres_conn_id)
+
+
+def populate_staging_table(postgres_conn, key):
+
+    filename = staging_download_dest + key.split(prefix_delimiter)[-1]
+    tablename = staging_table_name(key)
+    logger.info(f"Attempting to import file {filename} into table {tablename}")
+
+    columns = read_header_columns(filename)
+    for column in columns:
+        assert_safe_identifier(column, f"column in {key}")
+    column_list = ", ".join(columns)
+
+    # Bulk-load via COPY: libpq streams the file so memory stays flat
+    # regardless of size, and Postgres handles CSV quoting/escaping. COPY maps
+    # CSV fields to the column list POSITIONALLY — HEADER true only discards
+    # the first record without comparing names (and HEADER MATCH cannot be
+    # used, since cleaned identifiers differ from the raw header fields). The
+    # load is correct only because this column list comes from the same
+    # read_header_columns parse the create step used on the same file.
+    # The unquoted table name folds to lower case to match CREATE TABLE.
+    copy_sql = (
+        f"COPY cdw.staging.{tablename} ({column_list}) "
+        "FROM STDIN WITH (FORMAT CSV, HEADER true)"
+    )
+    logger.debug(copy_sql)
+    bulk_load_csv(copy_sql, filename, postgres_conn)
+
+
+def execute_query(query, conn_id):
+    hook = PostgresHook(postgres_conn_id=conn_id)
+    hook.run(sql=query)
+
+
+def bulk_load_csv(bulkCopySql, filename, conn_id):
+    hook = PostgresHook(postgres_conn_id=conn_id)
+    hook.copy_expert(sql=bulkCopySql, filename=filename)
+
+
+def clean_postgres_name(name, fallback="column"):
+    """Coerce any source name into a legal unquoted Postgres identifier.
+
+    Source headers and file names are schema we cannot ask upstream to change,
+    so this never rejects: it always returns a name matching SAFE_IDENTIFIER.
+    Used for both column names and table names.
+    """
+    # Lowercase, turn spaces into underscores, then drop everything that is not
+    # an ASCII identifier character (this strips punctuation and non-ASCII
+    # letters such as accented characters).
+    cleaned = name.lower().replace(" ", "_")
+    cleaned = re.sub(r"[^a-z0-9_]", "", cleaned)
+
+    # A name of only stripped characters leaves nothing behind; give it a base
+    # name so it still loads (callers dedupe collisions).
+    if not cleaned:
+        cleaned = fallback
+
+    # Unquoted identifiers cannot start with a digit.
+    if cleaned[0].isdigit():
+        cleaned = "_" + cleaned
+
+    # Reserved key words are not valid unquoted identifiers.
+    if cleaned in POSTGRES_RESERVED_KEYWORDS:
+        cleaned += "_"
 
     # Truncate to what Postgres will actually store, so callers dedupe the
     # name Postgres sees rather than a longer one it would silently cut.
-    return column_name[:PG_MAX_IDENTIFIER_LENGTH]
+    return cleaned[:PG_MAX_IDENTIFIER_LENGTH]
 
 
 def clean_column_names(raw_columns):
@@ -286,7 +304,7 @@ def clean_column_names(raw_columns):
     cleaned = []
     seen = set()
     for raw in raw_columns:
-        name = clean_column_name(raw)
+        name = clean_postgres_name(raw)
         candidate = name
         suffix = 1
         while candidate in seen:
@@ -322,18 +340,14 @@ def clean_table_name(key):
     """Coerce an S3 key into a legal staging table identifier.
 
     File names, like schema, are not something we can ask upstream to change, so
-    this mirrors clean_column_name: never reject, always emit a usable name.
+    this uses clean_postgres_name: never reject, always emit a usable name.
     Used by both the create and populate steps so they target the same table.
     """
     # Lowercase first so ".CSV" is stripped too, and removesuffix so the
     # extension is only removed from the end, not from mid-name occurrences.
+    # Hyphens become underscores (file names use them as word separators).
     name = key.lower().removesuffix(".csv").replace("-", "_")
-    name = re.sub(r"[^a-z0-9_]", "", name)
-    if not name:
-        name = "table"
-    if name[0].isdigit():
-        name = "_" + name
-    return name[:PG_MAX_IDENTIFIER_LENGTH]
+    return clean_postgres_name(name, fallback="table")
 
 
 def create_table_in_postgres(filename, postgres_conn):
@@ -344,10 +358,9 @@ def create_table_in_postgres(filename, postgres_conn):
     for col_index, column in enumerate(columns):
         logger.info(f"column index {col_index} is '{column}'")
 
-    # Defense in depth: clean_table_name always returns a conforming identifier,
-    # so a mismatch here means a bug in the cleaner, not bad input.
-    if not SAFE_IDENTIFIER.match(tablename):
-        raise ValueError(f"Refusing to build DDL for unsafe table name {tablename!r}")
+    assert_safe_identifier(tablename, f"table for {filename}")
+    for column in columns:
+        assert_safe_identifier(column, f"column in {filename}")
 
     # The DAG's first task resets staging wholesale (DROP SCHEMA ... CASCADE in
     # include/sql/drop_and_create_staging.sql), so in a normal run this table
@@ -373,9 +386,4 @@ def staging_table_name(key: str) -> str:
     targets the same table the create step built.
     """
     tablename = clean_table_name(key.split(prefix_delimiter)[-1])
-    # Defense in depth: clean_table_name always returns a conforming identifier.
-    if not SAFE_IDENTIFIER.match(tablename):
-        raise ValueError(
-            f"Refusing to build COPY for unsafe table name {tablename!r} (from key {key!r})"
-        )
-    return tablename
+    return assert_safe_identifier(tablename, f"table for key {key!r}")
