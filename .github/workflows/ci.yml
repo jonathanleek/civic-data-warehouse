@@ -55,6 +55,37 @@ jobs:
             tests/test_sensor_modes.py \
             tests/test_static_start_date.py
 
+  transform-sql-tests:
+    name: Transform SQL tests (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cdw
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      # Runs every staging -> current SQL file (include/transform_layers.py)
+      # against synthetic staging data and checks the results. No Airflow
+      # needed: the tests execute the same SQL files the transform DAGs run.
+      - name: Run transform tests
+        env:
+          CDW_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cdw
+        run: pytest tests/transform
+
   runtime-dag-tests:
     name: DAG integrity tests (Astro Runtime)
     runs-on: ubuntu-latest

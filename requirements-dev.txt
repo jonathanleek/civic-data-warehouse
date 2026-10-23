@@ -2,3 +2,5 @@
 # Astro Runtime image (see requirements.txt for runtime deps).
 pytest>=8.0
 ruff==0.15.4
+# Transform SQL tests (tests/transform) connect to a scratch Postgres.
+psycopg2-binary>=2.9

@@ -31,6 +31,13 @@ with DAG(
         sql="create_crosswalk.sql",
     )
 
+    # Create schema "etl" (transform utilities, source contract, work tables)
+    create_etl = SQLExecuteQueryOperator(
+        task_id="create_etl",
+        conn_id="cdw-dev",
+        sql="create_etl.sql",
+    )
+
     # Create schema "current" in cdw database
     create_current = SQLExecuteQueryOperator(
         task_id="create_data_prep",
@@ -53,6 +60,7 @@ with DAG(
 (
     create_staging
     >> create_crosswalk
+    >> create_etl
     >> create_current
     >> create_history
     >> create_truncate_tables_function
