@@ -1,18 +1,46 @@
-CDW REQUIREMENTS
-- Secret Manager
-  - We are using AWS ParameterStore. Example of how to setup connection is included in Dockerfile_Example
-  - secret_manager_test.py can be used to confirm you have the secret manager connection configured correctly
-- SQL Database
-  - We are using  postgreSQL hosted in AWS Aurora.  Connection information is being stored as 'cdw-dev' in secret manager
-- S3 Bucket
-  - We are using AWS S3. Connection information being stored as 's3_datalake'
+CDW Process
+===========
 
-CDW START UP PROCESS
-- Manually trigger the create_cdw_databases.py dag through the Airflow UI to create the various schemas that the CDW uses
-- Update start date of all dags to today's date. Failure to do so will spawn numerous dag runs of each dag
-- Turn on all dags in the order they appear in the run order. For initial run, allow each dag to successfully complete before turning the next one on
+Requirements
+------------
+- **Secrets / connections.** Locally, connections come from `docker-compose.override.yml`
+  (`cdw-dev` → the CDW Postgres, `s3_datalake` → LocalStack). In a hosted deployment they come
+  from the secrets backend (AWS Parameter Store); `dags/secret_manager_test.py` checks that the
+  backend is wired up.
+- **Variables.** `CDW-COUNTRY-ID` (ISO 3166-1 numeric, `840`) and `CDW-REGION-ID` (county FIPS,
+  `29510`) set the CDW_ID namespace (`documentation/schema/cdw_id.md`). `CDW-REGION-NAME`
+  (default `St. Louis City`) names the municipality row. Locally the first two come from
+  `.airflow.vars.stl.env.shared`.
 
-DAG RUN ORDER
-- retrieve_govt_files.py
-- s3_to_postgres.py
-- compare_staging_schemas.py
+Start-up (once per database)
+----------------------------
+1. Trigger `cdw_creation`. It creates the `staging`, `crosswalk`, `etl`, `current` and `history`
+   schemas. `crosswalk` and `history` hold persistent state and are never dropped by later runs.
+
+DAG run order
+-------------
+All DAGs are `schedule=None` except the transform layers after the first, which run on Airflow
+Assets.
+
+| # | DAG | Trigger | What it does |
+|---|-----|---------|--------------|
+| 1 | `govt_file_download` | manual | Download city files → S3 landing zone |
+| 2 | `staging_table_prep` | manual | S3 CSVs → `staging.*` (all TEXT) |
+| 3 | `cdw_transform_reference` | manual | Lookups → `current` |
+| 4 | `cdw_transform_entities` | Asset from 3 | address, legal_entity |
+| 5 | `cdw_transform_spine` | Asset from 4 | parcel, building, unit, secondary_owner |
+| 6 | `cdw_transform_events` | Asset from 5 | assessment, tax_delinquency, permit, inspection, condemnation, service |
+| 7 | `cdw_transform_history` | Asset from 6 | version `current` into `history` |
+| 8 | `cdw_transform_qa` | Asset from 7 | data-quality checks; fails on errors |
+
+So a refresh is: run 1, then 2, then trigger 3. Steps 4–8 follow on their own.
+
+When a transform fails
+----------------------
+- **`source_views` task** — the city changed a staging table or column the transforms need. The
+  error names it. Fix the mapping in `include/sql/current/source_views.sql`.
+- **A transform task with "Capture-all guard failed"** — rows went missing. Compare
+  `etl.feed_reconciliation` with `current.exclusion_log` for that feed.
+- **`cdw_transform_qa`** — see `SELECT * FROM etl.qa_result WHERE failing_rows > 0`.
+
+Design reference: `documentation/pipeline_architecture/staging_to_current.md`.

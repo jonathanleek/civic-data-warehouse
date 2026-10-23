@@ -14,6 +14,23 @@ Open follow-ups carried by individual branches
 - Verify the grain of multi-building condo developments before finalizing the synthesized building
   rule.
 
+Status
+======
+Waves 2–6 are implemented as SQL layers plus DAGs; see "Implementation" in
+[staging_to_current.md](staging_to_current.md). Each is tested end-to-end on synthetic staging
+data (`tests/transform`). Still open:
+- **Validation against a real staging load.** The source-contract columns marked `UNVERIFIED` in
+  `include/sql/current/source_views.sql` (bldgres detail, bldgsect use code, permit numbers,
+  hcd / condemn / forestry / LRA fields) need checking against the real tables. Gaps are listed
+  in `etl.source_contract_gap` after any run.
+- **Grain verification (#69, #70)** on real data. The mixed condo-footprint case is handled by
+  rejecting and logging the footprint's own building rows, so it can be quantified with
+  `SELECT count(*) FROM current.exclusion_log WHERE reason LIKE 'condo footprint%'`.
+- **Owners from `condemn` / `hcd_hcdinsp`** (#59) and permit applicants: their owner columns are
+  not in the verified contract yet.
+- **Non-real-estate land uses (#48):** the seed lists 3997 and 6312 (`etl.non_real_estate_land_use`
+  in `create_etl.sql`); needs review against the full vocabulary.
+
 Branches
 ========
 

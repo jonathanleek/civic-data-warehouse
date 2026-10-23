@@ -24,7 +24,7 @@ Table parcel [headercolor: #3498db] {
   neighborhood varchar
   zip_code text
   census_block text
-  frontage int
+  frontage numeric [note: 'feet, verbatim (fractional in source)']
   zoning_class_id text [ref: > zoning_class.zoning_class_id]
 }
 
@@ -59,12 +59,14 @@ Table unit [headercolor: #3498db] {
   full_bath int
   half_bath int
   garage int
+  number_of_units int [note: 'source unit count, carried on the single unit of a multi-family building']
 }
 
 // Shared entities
 Table legal_entity [headercolor: #3498db] {
   legal_entity_id text [pk]
   name varchar
+  name2 varchar [note: 'second owner-name line verbatim (often C/O)']
   address_id text [ref: > address.address_id]
 }
 
@@ -72,6 +74,7 @@ Table address [headercolor: #3498db] {
   address_id text [pk]
   raw_line text [note: 'un-componentized source address line, verbatim']
   street_number int
+  street_number_suffix varchar [note: 'lowaddrsuf verbatim']
   street_name_prefix varchar
   street_name varchar
   street_name_suffix varchar
@@ -136,6 +139,7 @@ Table assessment [headercolor: #e67e22] {
 Table tax_delinquency [headercolor: #e67e22] {
   tax_delinquency_id text [pk]
   legal_entity_id text [ref: > legal_entity.legal_entity_id]
+  parcel_id text [ref: > parcel.cdw_id]
   last_paid_year int
   amount_delinquent float
 }
@@ -148,16 +152,19 @@ Table municipality [headercolor: #9b59b6] {
 
 Table division [headercolor: #9b59b6] {
   division_id text [pk]
+  code text [note: 'source code verbatim (natural key)']
   division varchar
 }
 
 Table service_type [headercolor: #9b59b6] {
   service_type_id text [pk]
+  code text [note: 'source code verbatim (natural key)']
   service_type varchar
 }
 
 Table zoning_class [headercolor: #9b59b6] {
   zoning_class_id text [pk]
+  code text [note: 'source code verbatim (natural key)']
   zoning_class varchar
 }
 
@@ -169,16 +176,20 @@ Table municipal_parcel_id_mapping [headercolor: #9b59b6] {
 
 Table use_type [headercolor: #9b59b6] {
   use_type_id text [pk]
+  code text [note: 'source code verbatim (natural key)']
   use_type text
 }
 
 Table permit_type [headercolor: #9b59b6] {
   permit_type_id text [pk]
+  category varchar [note: 'permit feed']
+  code text [note: 'projecttype verbatim']
   permit_type varchar
 }
 
 Table inspection_type [headercolor: #9b59b6] {
   inspection_type_id text [pk]
+  code text [note: 'source code verbatim (natural key)']
   inspection_type varchar
 }
 
@@ -187,6 +198,7 @@ Table exclusion_log [headercolor: #95a5a6] {
   exclusion_id text [pk]
   source_table varchar
   source_natural_key varchar
+  disposition varchar [note: 'excluded | rejected']
   reason varchar
   raw_payload jsonb
   excluded_at timestamptz

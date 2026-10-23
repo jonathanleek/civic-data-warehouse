@@ -86,6 +86,12 @@ would change an existing `parcel_seq`, and if a row is inserted with an explicit
 (e.g. restoring a registry from backup) it advances the sequence past that value so later minting
 cannot collide. Pipeline rebuilds should read and append to this table, not truncate it.
 
+The same registry pattern covers every other entity: `crosswalk.entity_xref` maps
+`(namespace, entity, scope, natural key)` to a stable sequence through
+`crosswalk.mint_entity_keys()`. It is append-only with immutable sequences, like `parcel_xref`.
+`crosswalk.active_namespace` holds the deployment's own `country.region`. It is set from the
+`CDW-COUNTRY-ID` / `CDW-REGION-ID` Airflow Variables at the start of each transform run.
+
 Storage
 =======
 A full CDW_ID is far wider than a 64-bit integer, so it is stored as **TEXT**, not a number.

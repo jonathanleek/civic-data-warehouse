@@ -37,6 +37,8 @@ CREATE SCHEMA current;
 -- =============================================================================
 -- Lookup tables (namespaced TEXT surrogate keys)
 -- These are created first so spine/operations FKs can reference them.
+-- `code` carries the source system's code verbatim (the lookup's natural key);
+-- the named column carries its description.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."municipality" (
@@ -46,31 +48,38 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."municipality" (
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."division" (
   "division_id" text PRIMARY KEY,
+  "code" text,
   "division" varchar
 );
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."service_type" (
   "service_type_id" text PRIMARY KEY,
+  "code" text,
   "service_type" varchar
 );
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."zoning_class" (
   "zoning_class_id" text PRIMARY KEY,
+  "code" text,
   "zoning_class" varchar
 );
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."use_type" (
   "use_type_id" text PRIMARY KEY,
+  "code" text,
   "use_type" text
 );
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."permit_type" (
   "permit_type_id" text PRIMARY KEY,
+  "category" varchar,
+  "code" text,
   "permit_type" varchar
 );
 
 CREATE TABLE IF NOT EXISTS "cdw"."current"."inspection_type" (
   "inspection_type_id" text PRIMARY KEY,
+  "code" text,
   "inspection_type" varchar
 );
 
@@ -82,6 +91,7 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."address" (
   "address_id" text PRIMARY KEY,
   "raw_line" text,
   "street_number" int,
+  "street_number_suffix" varchar,
   "street_name_prefix" varchar,
   "street_name" varchar,
   "street_name_suffix" varchar,
@@ -94,6 +104,7 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."address" (
 CREATE TABLE IF NOT EXISTS "cdw"."current"."legal_entity" (
   "legal_entity_id" text PRIMARY KEY,
   "name" varchar,
+  "name2" varchar,
   "address_id" text
 );
 
@@ -121,7 +132,7 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."parcel" (
   "neighborhood" varchar,
   "zip_code" text,
   "census_block" text,
-  "frontage" int,
+  "frontage" numeric,
   "zoning_class_id" text
 );
 
@@ -188,7 +199,8 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."unit" (
   "central_ac" int,
   "full_bath" int,
   "half_bath" int,
-  "garage" int
+  "garage" int,
+  "number_of_units" int
 );
 
 -- =============================================================================
@@ -249,6 +261,7 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."assessment" (
 CREATE TABLE IF NOT EXISTS "cdw"."current"."tax_delinquency" (
   "tax_delinquency_id" text PRIMARY KEY,
   "legal_entity_id" text,
+  "parcel_id" text,
   "last_paid_year" int,
   "amount_delinquent" float
 );
@@ -275,10 +288,15 @@ CREATE TABLE IF NOT EXISTS "cdw"."current"."municipal_parcel_id_mapping" (
 -- Exclusion log: records filtered out of the warehouse (e.g. non-real-estate
 -- taxable accounts mixed in with parcels). Captures the source natural key, the
 -- reason for exclusion, and the raw source payload for later auditing/recovery.
+-- disposition: 'excluded' = deliberately filtered; 'rejected' = could not be
+-- loaded (e.g. missing key). Together with loaded rows these must account for
+-- every source row (etl.reconcile).
 CREATE TABLE IF NOT EXISTS "cdw"."current"."exclusion_log" (
   "exclusion_id" text PRIMARY KEY,
   "source_table" varchar,
   "source_natural_key" varchar,
+  "disposition" varchar NOT NULL DEFAULT 'excluded'
+    CHECK ("disposition" IN ('excluded', 'rejected')),
   "reason" varchar,
   "raw_payload" jsonb,
   "excluded_at" timestamptz DEFAULT now()
@@ -302,6 +320,12 @@ COMMENT ON COLUMN "cdw"."current"."parcel"."cdw_id" IS 'CDW_ID standard key (CCC
 COMMENT ON COLUMN "cdw"."current"."building"."cdw_id" IS 'CDW_ID standard key (CCC.ccccc.pppppppp.bbbb.00000); unit segment zero-filled at building level';
 COMMENT ON COLUMN "cdw"."current"."unit"."cdw_id" IS 'CDW_ID standard key (CCC.ccccc.pppppppp.bbbb.uuuuu)';
 COMMENT ON COLUMN "cdw"."current"."municipal_parcel_id_mapping"."municipal_parcel_id" IS 'City native parcel reference (assessor handle); preserved for crosswalk back to source';
+COMMENT ON COLUMN "cdw"."current"."address"."raw_line" IS 'Un-componentized source address line, verbatim (owner mailing addresses are not parsed)';
+COMMENT ON COLUMN "cdw"."current"."address"."street_number_suffix" IS 'Address-number suffix verbatim (prcl lowaddrsuf, e.g. A, #A)';
+COMMENT ON COLUMN "cdw"."current"."legal_entity"."name2" IS 'Second owner-name line verbatim (prcl_prcl.ownername2; often a C/O line)';
+COMMENT ON COLUMN "cdw"."current"."unit"."number_of_units" IS 'Source unit count carried on a multi-family building''s single unit; CDW does not fabricate per-apartment rows';
+COMMENT ON COLUMN "cdw"."current"."tax_delinquency"."parcel_id" IS 'Parcel of the delinquent assessment account';
+COMMENT ON COLUMN "cdw"."current"."permit_type"."category" IS 'Permit feed the type was observed in (building, demolition, electrical, mechanical, occupancy, plumbing)';
 
 -- =============================================================================
 -- Foreign keys
@@ -311,6 +335,10 @@ COMMENT ON COLUMN "cdw"."current"."municipal_parcel_id_mapping"."municipal_parce
 ALTER TABLE "cdw"."current"."building" ADD FOREIGN KEY ("parcel_cdw_id") REFERENCES "cdw"."current"."parcel" ("cdw_id");
 
 ALTER TABLE "cdw"."current"."unit" ADD FOREIGN KEY ("building_cdw_id") REFERENCES "cdw"."current"."building" ("cdw_id");
+
+CREATE INDEX ON "cdw"."current"."building" ("parcel_cdw_id");
+
+CREATE INDEX ON "cdw"."current"."unit" ("building_cdw_id");
 
 -- Spine -> shared entities / lookups
 ALTER TABLE "cdw"."current"."parcel" ADD FOREIGN KEY ("owner_id") REFERENCES "cdw"."current"."legal_entity" ("legal_entity_id");
@@ -358,6 +386,8 @@ ALTER TABLE "cdw"."current"."inspection" ADD FOREIGN KEY ("inspection_type_id") 
 ALTER TABLE "cdw"."current"."assessment" ADD FOREIGN KEY ("parcel_id") REFERENCES "cdw"."current"."parcel" ("cdw_id");
 
 ALTER TABLE "cdw"."current"."tax_delinquency" ADD FOREIGN KEY ("legal_entity_id") REFERENCES "cdw"."current"."legal_entity" ("legal_entity_id");
+
+ALTER TABLE "cdw"."current"."tax_delinquency" ADD FOREIGN KEY ("parcel_id") REFERENCES "cdw"."current"."parcel" ("cdw_id");
 
 -- Native-reference preservation
 ALTER TABLE "cdw"."current"."municipal_parcel_id_mapping" ADD FOREIGN KEY ("parcel_id") REFERENCES "cdw"."current"."parcel" ("cdw_id");

@@ -54,12 +54,13 @@ A local AWS S3 emulator that serves as the **landing zone** for raw data files. 
 CDW PostgreSQL (Data Warehouse)
 -------------------------------
 
-A dedicated Postgres 15 instance that serves as the **data warehouse** itself. This is separate from Airflow's internal metadata database. It contains four schemas:
+A dedicated Postgres 15 instance that serves as the **data warehouse** itself. This is separate from Airflow's internal metadata database. It contains five schemas:
 
 - **`staging`** — raw data loaded directly from S3 CSVs
 - **`crosswalk`** — persistent CDW_ID registries such as parcel handle → parcel sequence mappings
+- **`etl`** — transform utilities, source-contract views, work tables, reconciliation and QA results
 - **`current`** — normalized tables (parcel, building, unit, address, legal_entity, etc.)
-- **`history`** — historical snapshots of the current schema
+- **`history`** — versioned copies of `current` rows (changed and deleted records)
 
 | | Connection Details |
 |---|---|
@@ -75,9 +76,9 @@ All DAGs are manually triggered (`schedule=None`) unless noted otherwise. They s
 
 **File:** `dags/create_cdw_databases.py`
 
-Creates the CDW schemas (`staging`, `crosswalk`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG. Re-running it drops and recreates `staging` and `current` (both are full-reload targets), so any loaded data in those schemas is lost. The `crosswalk` schema is persistent ID registry state: it is created if missing and never dropped or truncated.
+Creates the CDW schemas (`staging`, `crosswalk`, `etl`, `current`, `history`) and a utility function for truncating tables. Run this once before any other DAG. Re-running it drops and recreates `staging` and `current` (both are full-reload targets), so any loaded data in those schemas is lost. The `crosswalk` schema (persistent ID registry state) and `history` are created if missing and never dropped or truncated; `etl` holds rebuildable transform utilities.
 
-**Task order:** `create_staging` > `create_crosswalk` > `create_data_prep` > `create_history` > `create_truncate_tables_function`
+**Task order:** `create_staging` > `create_crosswalk` > `create_etl` > `create_data_prep` > `create_history` > `create_truncate_tables_function`
 
 ### 2. `govt_file_download` — Data Ingestion
 
@@ -105,6 +106,16 @@ Truncates the `staging` schema, lists all files in the S3 landing zone, then dyn
 **Known issue:** The `forestry_maintenance_properties` table fails to populate due to quoted column names in the source CSV.
 
 **Task order:** `truncate_staging` > `S3_List` > `prepare_list` > `create_staging_tables` > `populate_staging_tables`
+
+### 4. `cdw_transform_*` — Staging → Current Transformation
+
+**Files:** `dags/transform_*.py`, SQL in `include/sql/current/`, layer registry in `include/transform_layers.py`
+
+Six layer DAGs restructure `staging` into the normalized `current` model and version it into `history`. Trigger `cdw_transform_reference` manually; each later layer runs automatically on the previous layer's Airflow Asset:
+
+`reference` > `entities` > `spine` > `events` > `history` > `qa`
+
+Every source row is loaded, excluded, or rejected (logged to `current.exclusion_log`), and each feed's counts must balance or the task fails. Design and rules: [staging_to_current.md](documentation/pipeline_architecture/staging_to_current.md).
 
 ### Utility DAGs
 
@@ -137,12 +148,13 @@ Continuous Integration
 
 CI runs on every pull request and on pushes to `master` via GitHub Actions
 (`.github/workflows/ci.yml`). There is no automated deploy yet — CI is a quality
-gate only. It has three jobs:
+gate only. It has four jobs:
 
 | Job | What it does |
 |-----|--------------|
 | **Lint (ruff)** | `ruff check` + `ruff format --check` over `dags/`, `include/`, and `tests/`. Config lives in `pyproject.toml`. |
 | **Static DAG policy tests** | Pure-AST best-practice checks (no Airflow needed) — hardcoded secrets, top-level execution, non-deterministic DAG IDs, dynamic `start_date`, subdags, sensor modes, etc. |
+| **Transform SQL tests (Postgres)** | Runs every staging → current SQL file against synthetic staging data in a Postgres 16 service container (`tests/transform`). |
 | **DAG integrity tests (Astro Runtime)** | Builds the project image (validating the Docker build) and runs the full `pytest` suite inside it, including the `DagBag`-based tests (import errors, tags, `retries >= 2`, `catchup=False`). |
 
 The DAG tests are adapted from Astronomer's
@@ -162,6 +174,9 @@ ruff format dags include tests
 
 # Static (no-Airflow) best-practice tests
 pytest tests/test_no_hardcoded_secrets.py tests/test_no_top_level_execution.py  # ...etc
+
+# Transform SQL tests against a scratch Postgres database named cdw
+CDW_TEST_DATABASE_URL=postgresql://postgres@localhost:5432/cdw pytest tests/transform
 
 # Full suite inside the Astro Runtime image (matches the CI runtime job)
 docker build -t cdw-dag-tests .
