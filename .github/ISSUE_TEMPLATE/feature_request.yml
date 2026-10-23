@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose new functionality, a new data source, or a model change
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should be added or changed, and why?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know it is done?
+      placeholder: |
+        - [ ] ...
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Related issues, data sources, open questions.

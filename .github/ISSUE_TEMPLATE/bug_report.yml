@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in the pipeline, data, or docs is wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: DAG and task names, commands, or queries that show the problem.
+      placeholder: |
+        1. Trigger `staging_table_prep`
+        2. Task `populate_staging_tables` fails for ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Local (astro dev) or hosted, branch / commit.
